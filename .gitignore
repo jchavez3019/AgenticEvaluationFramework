@@ -1,0 +1,47 @@
+# --- Python ---------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+.eggs/
+.python-version
+.venv/
+.env
+
+# --- uv -------------------------------------------------------------------
+# uv.lock IS committed (per ADR-0002).
+.uv/
+
+# --- Build outputs --------------------------------------------------------
+build/
+dist/
+*.so
+
+# --- Test / coverage ------------------------------------------------------
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+
+# --- AEF artifacts (per ADR-0006 / ADR-0012) -----------------------------
+.aef/
+outputs/
+!outputs/.gitkeep
+
+# --- IDEs -----------------------------------------------------------------
+.idea/
+.vscode/
+*.swp
+
+# --- OS -------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+
+# --- Frontend (lands with ADR-0008/0009) ---------------------------------
+node_modules/
+.angular/
+.cache/

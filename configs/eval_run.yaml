@@ -1,0 +1,44 @@
+# Top-level evaluation run configuration consumed by ``aef-eval``.
+#
+# This is the walking-skeleton default config — runs entirely against
+# the in-tree mock adapters so a clean checkout can smoke-test the
+# whole stack with one command:
+#
+#     aef-eval --config configs/eval_run.yaml
+#
+# Override individual fields from the CLI, e.g.:
+#
+#     aef-eval --config configs/eval_run.yaml -O sampling.temperature=0.7
+#
+# ADR: CLI Configuration with Hydra and hydra-zen
+# See: adr/0007-cli-configuration-with-hydra-and-hydra-zen.md
+
+run_id: PLACEHOLDER          # generated automatically when "PLACEHOLDER".
+title: walking-skeleton mock run
+seed: 0
+
+model:
+  name: mock-chat
+  model_id: mock-chat
+
+dataset:
+  name: mock
+  dataset_id: mock
+
+metrics:
+  - name: exact_match
+    kind: lexical
+  - name: token_f1
+    kind: lexical
+  - name: latency
+    kind: operational
+
+sampling: {}
+
+engine:
+  kind: local
+
+output:
+  base_dir: outputs
+  write_result_json: true
+  write_metrics_csv: true

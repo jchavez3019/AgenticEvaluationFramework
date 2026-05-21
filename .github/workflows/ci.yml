@@ -1,0 +1,82 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-check:
+    name: backend / ruff + pyright + pytest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.4.x"
+
+      - name: Set up Python 3.13
+        run: uv python install 3.13
+
+      - name: Sync dependencies
+        working-directory: backend
+        run: uv sync --all-extras --dev
+
+      - name: Ruff (lint)
+        working-directory: backend
+        run: uv run ruff check src tests
+
+      - name: Ruff (format)
+        working-directory: backend
+        run: uv run ruff format --check src tests
+
+      - name: Pyright (strict)
+        working-directory: backend
+        run: uv run pyright src
+
+      - name: Pytest (default markers)
+        working-directory: backend
+        run: uv run pytest
+
+      - name: Pre-commit
+        run: |
+          uv tool install pre-commit
+          uv tool run pre-commit run --all-files
+
+  # Gated jobs — populated as the corresponding milestones land. They are
+  # documented here so contributors see the deselected markers up-front.
+  gpu-tests:
+    name: gpu / @pytest.mark.gpu (deselected by default)
+    if: false
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "GPU runner placeholder; activated in a future milestone."
+
+  network-tests:
+    name: network / @pytest.mark.network (deselected by default)
+    if: false
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Network runner placeholder; activated in a future milestone."
+
+  broker-tests:
+    name: broker / @pytest.mark.broker (deselected by default)
+    if: false
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Broker runner placeholder; activated alongside DistributedEngine."
+
+  docker-tests:
+    name: docker / @pytest.mark.docker (deselected by default)
+    if: false
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Docker runner placeholder; activated alongside the frontend Docker dev env."

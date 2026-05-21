@@ -17,7 +17,7 @@ LLM-as-judge metrics evaluate a candidate's quality by asking another LLM ("the 
 - **Prompt drift** — small wording changes in the rubric prompt produce large score shifts.
 - **Output schema fragility** — judges hallucinate fields, return unparseable JSON, or invent rubric dimensions.
 
-The high-level architecture document (§8) commits to LLM-as-judge as part of the default metric suite. ADR-0003 declares `JudgeAdapter` as a specialization of `ModelAdapter`. ADR-0004 places the `learned` family (`llm_judge`, `pairwise_judge`, `g_eval`) inside the metric registry. None of those ADRs answer the harder question: *what does a judge actually receive, what does it return, and what defaults make its scores reproducible and as bias-free as we can make them in v1?*
+The high-level architecture document (§8) commits to LLM-as-judge as part of the default metric suite. ADR-0003 declares `JudgeAdapter` as a specialization of `ModelAdapter`. ADR-0004 places the `learned` family (`llm_judge`, `pairwise_judge`, `g_eval`) inside the metric registry. None of those ADRs answer the harder question: _what does a judge actually receive, what does it return, and what defaults make its scores reproducible and as bias-free as we can make them in v1?_
 
 This ADR specifies the judge contract and the bias-mitigation defaults that the in-tree judge metrics enforce.
 
@@ -25,10 +25,10 @@ This ADR specifies the judge contract and the bias-mitigation defaults that the 
 
 - **Reproducibility.** Two runs with the same `EvaluationRunRequest`, same judge adapter, same `seed`, and the same candidates must produce byte-identical `MetricResult` rows.
 - **Schema reliability.** Judge output must always be a typed, validated Pydantic object. JSON parse failures are a recoverable, recorded error, not a silent zero-score.
-- **Bias control by default.** Position-swap for pairwise, length normalization signals on rubric, and explicit "do not reward verbosity" anchoring in prompts — all on by default. Users opt *out*, not in.
+- **Bias control by default.** Position-swap for pairwise, length normalization signals on rubric, and explicit "do not reward verbosity" anchoring in prompts — all on by default. Users opt _out_, not in.
 - **Adapter-agnostic.** A judge can be a local HF model, an Ollama model, or a cloud API. The contract must be identical regardless.
 - **Cost and latency awareness.** Judges are themselves generation workloads; the operational metrics (`cost`, `token_counts`, `latency`) capture per-judgment overhead.
-- **Explainability.** Every judgment carries a free-text `rationale` so the dashboard can show *why* the judge scored a sample as it did.
+- **Explainability.** Every judgment carries a free-text `rationale` so the dashboard can show _why_ the judge scored a sample as it did.
 
 ## Decision
 
@@ -95,9 +95,9 @@ class RubricScore(BaseModel):
     notes: str | None            # judge-level free-form explanation
 ```
 
-The judge LLM is *required* to return a JSON object that round-trips through `RubricScore`. The prompt template explicitly shows the schema to the judge (one-shot example included). Adapters that support API-level JSON-schema enforcement use it; the rest rely on parser+retry.
+The judge LLM is _required_ to return a JSON object that round-trips through `RubricScore`. The prompt template explicitly shows the schema to the judge (one-shot example included). Adapters that support API-level JSON-schema enforcement use it; the rest rely on parser+retry.
 
-`RubricScore.overall` is computed deterministically from `criteria_scores` according to `Rubric.aggregation`. The judge does *not* compute the overall — that is framework-side, so changing aggregation does not require re-running the judge.
+`RubricScore.overall` is computed deterministically from `criteria_scores` according to `Rubric.aggregation`. The judge does _not_ compute the overall — that is framework-side, so changing aggregation does not require re-running the judge.
 
 `MetricResult.value` for a judge metric is `RubricScore.overall` (or `None` when aggregation is `"none"` and the user wants the criterion breakdown only). `MetricResult.sub_values` carries one `SubScore` per `CriterionScore.criterion`, with `notes` set to the criterion's rationale truncated to a configurable length.
 
@@ -113,14 +113,14 @@ The judge LLM is *required* to return a JSON object that round-trips through `Ru
 
 - Inputs: `candidate_a`, `candidate_b`, common `input`, optionally `reference`. The metric is run when comparing two models on the same dataset (ADR-0005's multirun pattern provides the shape).
 - Output: a `PairwisePreference` Pydantic model with `winner: Literal["A", "B", "tie"]`, `confidence: float`, plus the per-criterion `RubricScore` for each side.
-- **Position-swap is on by default.** Each pairwise judgment is run twice — once with the candidate ordering as supplied, once swapped. Both judgments must agree for the result to count as `winner != "tie"`; disagreement collapses to `winner="tie"`. This single change cuts 
-position-bias-driven false preferences by a substantial margin in published evaluations and 
-costs only an extra judge call per pair. The main prior art is MT-Bench / Chatbot Arena and follow-up papers studying order, verbosity, and self-preference biases. Users may disable position-swap (`bias_mitigation.position_swap=false`) at the cost of recorded position bias on their results.
+- **Position-swap is on by default.** Each pairwise judgment is run twice — once with the candidate ordering as supplied, once swapped. Both judgments must agree for the result to count as `winner != "tie"`; disagreement collapses to `winner="tie"`. This single change cuts
+  position-bias-driven false preferences by a substantial margin in published evaluations and
+  costs only an extra judge call per pair. The main prior art is MT-Bench / Chatbot Arena and follow-up papers studying order, verbosity, and self-preference biases. Users may disable position-swap (`bias_mitigation.position_swap=false`) at the cost of recorded position bias on their results.
 
 #### `g_eval` — multi-step / chain-of-thought structured judging
 
 - Inputs: same as `llm_judge`.
-- Procedure: the judge prompt follows the G-Eval pattern: explicitly list the evaluation criteria, ask the judge to derive intermediate evaluation steps, then emit a structured score for each criterion. The reasoning is captured in `RubricScore.notes` for inspection but is *not* used to override the structured criterion scores.
+- Procedure: the judge prompt follows the G-Eval pattern: explicitly list the evaluation criteria, ask the judge to derive intermediate evaluation steps, then emit a structured score for each criterion. The reasoning is captured in `RubricScore.notes` for inspection but is _not_ used to override the structured criterion scores.
 - Difference from `llm_judge`: `llm_judge` is direct rubric scoring ("score this answer against these criteria"), while `g_eval` is a prompt-and-procedure template for decomposed evaluation. `g_eval` can still run on a model that was not trained with a special "CoT mode"; the distinction is in the metric's prompting protocol, not a model capability toggle. It also standardizes the intermediate-step prompt shape so two G-Eval runs are comparable across judge adapters.
 - Suited to nuanced rubrics where simple direct scoring drifts (math reasoning, multi-step factuality, instruction following). It is more expensive in tokens than `llm_judge`, so it is not the default judge metric.
 
@@ -143,7 +143,7 @@ class BiasMitigation(BaseModel):
 
 All defaults are `on`. They are not optional behaviors hidden behind a feature flag — they are the framework's stance on what "default LLM-as-judge" means here. A user who wants raw, un-anchored judgments must explicitly set the relevant fields to `False` in their config; the dashboard surfaces this on every run-history row so a user comparing runs can immediately see whether bias mitigations were on.
 
-`self_preference_warning` works by inspecting the family of both the candidate generator's adapter and the judge's adapter (`ModelAdapterSpec.family: Literal["openai", "anthropic", "gemini", "local-hf", "local-ollama", ...]`). If they match, a one-paragraph anchor is appended to the rubric prompt: *"You and the candidate share a model family. Evaluate strictly against the rubric and do not favor outputs from your family."* This is a known imperfect mitigation; the dashboard warns the user and recommends using a judge from a different family when possible.
+`self_preference_warning` works by inspecting the family of both the candidate generator's adapter and the judge's adapter (`ModelAdapterSpec.family: Literal["openai", "anthropic", "gemini", "local-hf", "local-ollama", ...]`). If they match, a one-paragraph anchor is appended to the rubric prompt: _"You and the candidate share a model family. Evaluate strictly against the rubric and do not favor outputs from your family."_ This is a known imperfect mitigation; the dashboard warns the user and recommends using a judge from a different family when possible.
 
 ### 5. Prompt template versioning
 
@@ -176,7 +176,7 @@ Jinja-2 is used because the prompt is a **template**, not a static text blob. Th
 
 - Judge metrics declare `kind=LEARNED` (per ADR-0004) and inherit the routing rules from ADR-0005:
   - `is_remote=True` → `cloud_judge_api` pool. Rate-limit-bounded.
-  - `is_remote=False`, `requires_gpu=True` → `local_gpu` *judge* pool, distinct from the main generation pool.
+  - `is_remote=False`, `requires_gpu=True` → `local_gpu` _judge_ pool, distinct from the main generation pool.
 - Every `RubricScore` carries the underlying judge call's `usage` (token counts, cost) so the dashboard can show "this run cost $X in judge fees, of which $Y was pairwise position-swap overhead".
 - A run that uses pairwise judging with `position_swap=True` incurs roughly 2× the judge cost. The CLI's `validate_config` step (per ADR-0007) emits an estimated upper-bound cost when the user configures cloud judges, so there are no surprise bills.
 
@@ -192,7 +192,7 @@ Jinja-2 is used because the prompt is a **template**, not a static text blob. Th
 
 - Good, because judges are a real specialization of `ModelAdapter` rather than a parallel hierarchy. Users who add a custom judge follow exactly the path they would for a custom model adapter (per ADR-0003).
 - Good, because `RubricScore` plus `SubScore` per criterion gives the dashboard a uniform render shape: every judge run has the same kind of output table, regardless of rubric.
-- Good, because position-swap, length-anchor, style-anchor, and self-preference-warning are all *defaults* — users who do nothing get the safer behavior. The dashboard always shows whether they were on.
+- Good, because position-swap, length-anchor, style-anchor, and self-preference-warning are all _defaults_ — users who do nothing get the safer behavior. The dashboard always shows whether they were on.
 - Good, because parser+retry plus `JudgeOutputParseError` gives schema-reliable judging without aborting the run on a single bad JSON output.
 - Good, because prompt versioning means `metric_version` on `MetricResult` is meaningful: a v1 score from January and a v1 score from December are produced by the same prompt.
 - Bad, because position-swap doubles pairwise cost. We accept this — pairwise judging is the most position-bias-prone shape and the cost is the price of trustable comparisons.

@@ -13,7 +13,7 @@ LLM evaluation has two operationally distinct stages with different performance 
 - **Generation** is GPU-bound (or remote-API-bound), expensive to cold-start, and benefits massively from keeping a warm worker that processes micro-batches.
 - **Scoring** is mostly CPU-bound (lexical metrics, embedding metrics on small models, JSON parsing) with the exception of LLM-as-judge metrics which are themselves generation workloads on a possibly different model. Scoring is embarrassingly parallel.
 
-The high-level architecture document (§7) is explicit about the constraint: the framework must run end-to-end on a single GPU-constrained workstation, *and* must scale across nodes when more hardware is available, *with the same code path*. Switching to "production scale" should be a config change, not a rewrite.
+The high-level architecture document (§7) is explicit about the constraint: the framework must run end-to-end on a single GPU-constrained workstation, _and_ must scale across nodes when more hardware is available, _with the same code path_. Switching to "production scale" should be a config change, not a rewrite.
 
 We need a concrete decision on:
 
@@ -23,7 +23,7 @@ We need a concrete decision on:
 4. Failure semantics, idempotency, and how a partially-completed run is finalized.
 5. The broker / scheduler choice for the distributed implementation.
 
-This ADR is the largest single binding decision in the framework: every adapter, metric, and persistence call ultimately runs *under* an engine, so changing the engine contract later would force a cascade of updates.
+This ADR is the largest single binding decision in the framework: every adapter, metric, and persistence call ultimately runs _under_ an engine, so changing the engine contract later would force a cascade of updates.
 
 ## Decision Drivers
 
@@ -100,10 +100,10 @@ flowchart LR
 Five non-negotiable properties, both engines:
 
 1. **Sharded distribution + intra-shard micro-batching.** The dataset is split into shards (`shard_count = max(1, num_generator_workers)`). Each generator worker pulls its shard's tasks, then runs micro-batches of size `B` (configurable, default `B=1` for local-HF, low number for cloud APIs subject to per-call rate limits) across its warm GPU.
-2. **Pipeline parallelism between stages.** While generator A produces micro-batch *N+1*, the scorer pool processes the outputs of micro-batch *N*. The scoring queue absorbs jitter.
-3. **Separate worker pools.** Generation workers are GPU-pinned and long-lived (model stays loaded). Scoring workers are CPU pool members for lexical/embedding metrics. LLM-as-judge scoring is a *third* pool, GPU-pinned, because a judge is itself a generation workload — colocating it with the main generator would step on the same GPU. Pool sizes are independent.
+2. **Pipeline parallelism between stages.** While generator A produces micro-batch _N+1_, the scorer pool processes the outputs of micro-batch _N_. The scoring queue absorbs jitter.
+3. **Separate worker pools.** Generation workers are GPU-pinned and long-lived (model stays loaded). Scoring workers are CPU pool members for lexical/embedding metrics. LLM-as-judge scoring is a _third_ pool, GPU-pinned, because a judge is itself a generation workload — colocating it with the main generator would step on the same GPU. Pool sizes are independent.
 4. **Backpressure with bounded queues.** Each stage has a `max_queue_depth` (configurable, default `2 * pool_size * B`). When full, upstream blocks. This prevents OOMs on large datasets and bounds memory.
-5. **One row = one logical task.** Even though generation is micro-batched on the worker, the broker tracks per-row state. Workers pull `B` ready tasks and process them as a batch. This preserves the "isolated request" mental model the user asked for in high-level architecture §5 *without* sacrificing GPU throughput.
+5. **One row = one logical task.** Even though generation is micro-batched on the worker, the broker tracks per-row state. Workers pull `B` ready tasks and process them as a batch. This preserves the "isolated request" mental model the user asked for in high-level architecture §5 _without_ sacrificing GPU throughput.
 
 ### 3. `LocalEngine`
 
@@ -113,9 +113,9 @@ Five non-negotiable properties, both engines:
 - `ProgressSink.emit(...)` is a direct method call.
 - This is the default engine. No external services required. No Docker required. `aef-eval` works out of the box.
 
-> **Brief on `asyncio` for context.** `asyncio` is Python's stdlib cooperative-concurrency runtime. A function declared with `async def` is a *coroutine*; `await` inside it suspends until some I/O or scheduled work completes, while letting other coroutines run on the same OS thread. `asyncio.Queue` lets coroutines hand items between stages without locks (the queue is single-event-loop). `asyncio.create_task(...)` spawns a coroutine to run alongside others.
+> **Brief on `asyncio` for context.** `asyncio` is Python's stdlib cooperative-concurrency runtime. A function declared with `async def` is a _coroutine_; `await` inside it suspends until some I/O or scheduled work completes, while letting other coroutines run on the same OS thread. `asyncio.Queue` lets coroutines hand items between stages without locks (the queue is single-event-loop). `asyncio.create_task(...)` spawns a coroutine to run alongside others.
 >
-> The `LocalEngine` uses `asyncio` precisely because the work it coordinates is mostly *waiting*: waiting on a model SDK to return a generation, waiting on a database write, waiting on a metric to finish on a thread pool. While one coroutine is waiting, others run, and pipeline parallelism (generation overlapping with scoring) emerges naturally. The pipeline shape in this ADR is therefore implementable in one process without spawning OS threads for every stage.
+> The `LocalEngine` uses `asyncio` precisely because the work it coordinates is mostly _waiting_: waiting on a model SDK to return a generation, waiting on a database write, waiting on a metric to finish on a thread pool. While one coroutine is waiting, others run, and pipeline parallelism (generation overlapping with scoring) emerges naturally. The pipeline shape in this ADR is therefore implementable in one process without spawning OS threads for every stage.
 >
 > `asyncio` is **not** a fit for CPU-bound or blocking calls — those would freeze the event loop. We push such work to a worker thread (`asyncio.to_thread(...)`), a process pool, or a dedicated worker process. Per ADR-0010 we run pyright strict, which catches missing `await` and accidental coroutine returns at type-check time before they become silent stalls in production.
 
@@ -138,7 +138,7 @@ Five non-negotiable properties, both engines:
 
 ### 5. Worker-pool placement: cloud vs local, mixed scenarios
 
-The pipeline is intentionally pool-agnostic about *where* a generation or scoring task runs — workers are categorized by what they need, not by which physical adapter they wrap. Each Celery queue is keyed by a typed `WorkerPoolKind` so that mixing local-GPU and cloud-API workloads in the same run is a configuration choice, not a code path.
+The pipeline is intentionally pool-agnostic about _where_ a generation or scoring task runs — workers are categorized by what they need, not by which physical adapter they wrap. Each Celery queue is keyed by a typed `WorkerPoolKind` so that mixing local-GPU and cloud-API workloads in the same run is a configuration choice, not a code path.
 
 ```python
 WorkerPoolKind = Literal[
@@ -154,8 +154,8 @@ Pool selection at run start is driven by the adapter's existing capabilities (pe
 Pool sizing rules of thumb:
 
 - **Local model generation** scales with GPU count. One `local_gpu` worker per GPU, micro-batch on each warm worker. Adding nodes adds GPUs adds throughput linearly until the dataset is exhausted.
-- **Cloud-API generation** scales with provider concurrency limits, *not* node count. A small pool of `cloud_api` workers (2–8, depending on the provider's quota) is usually enough; scaling beyond the rate limit just produces 429s and idle workers.
-- **Local LLM-as-judge scoring** scales with judge-model GPU count. Distribute across `cloud_judge_api` is replaced by `local_gpu` workers in the *judge* pool — same shape as local generation.
+- **Cloud-API generation** scales with provider concurrency limits, _not_ node count. A small pool of `cloud_api` workers (2–8, depending on the provider's quota) is usually enough; scaling beyond the rate limit just produces 429s and idle workers.
+- **Local LLM-as-judge scoring** scales with judge-model GPU count. Distribute across `cloud_judge_api` is replaced by `local_gpu` workers in the _judge_ pool — same shape as local generation.
 - **Cloud LLM-as-judge scoring** scales the same way as cloud generation: a small `cloud_judge_api` pool sized to the provider's quota.
 
 #### Scenario A — local generation, cloud judge (the common case)
@@ -199,7 +199,7 @@ Sizing: a small `cloud_api` generation pool (provider rate limit decides the upp
 
 #### Does distribution still make sense for cloud adapters?
 
-Yes, but for different reasons. With local adapters, distributing across nodes adds compute capacity. With cloud adapters, distributing adds *concurrency up to the provider's rate limit* and lets the framework keep generation, scoring, and judging on independent queues with their own backpressure. A single overloaded API worker would otherwise stall the whole pipeline. Even in single-node setups, separating cloud-API workers into their own pool means provider-side rate-limit errors do not back-pressure CPU scoring and vice versa.
+Yes, but for different reasons. With local adapters, distributing across nodes adds compute capacity. With cloud adapters, distributing adds _concurrency up to the provider's rate limit_ and lets the framework keep generation, scoring, and judging on independent queues with their own backpressure. A single overloaded API worker would otherwise stall the whole pipeline. Even in single-node setups, separating cloud-API workers into their own pool means provider-side rate-limit errors do not back-pressure CPU scoring and vice versa.
 
 If a deployment runs entirely on one machine but mixes a local generation model with a cloud judge, `LocalEngine` already gives this for free: each pool is just a separate group of `asyncio` tasks, with the local-GPU pool sized to 1 and the cloud-judge pool sized to whatever fits under the provider quota. `DistributedEngine` simply formalizes the same shape across processes.
 
@@ -239,7 +239,7 @@ aef-eval engine=distributed engine.queues.generation.pool_size=4 engine.micro_ba
 - **Ray** is the documented escape hatch for the future. It has genuinely better GPU-aware scheduling (actor model + GPU resource constraints) and is the right choice if the framework grows into multi-tenant GPU pools. The `ExecutionEngine` Protocol is intentionally Ray-compatible so a `RayEngine` is a plug-in successor, not a fork.
 - **Dask** has stronger dataframe ergonomics but weaker GPU awareness and weaker semantics around long-lived warm workers. Wrong shape for this workload.
 - **RQ + Redis** is lighter than Celery, but the gap closes once we want per-stage routing keys, scheduled retries with exponential backoff, and `acks_late`. By that point we've reimplemented the parts of Celery we'd be using.
-- **Prefect / Dagster** are workflow orchestrators sitting at a different abstraction level. They are a great fit for *between-run* orchestration (CI sweeps, scheduled benchmarks, dataset rebuilds) but bring far too much for *intra-run* per-sample task scheduling. They could sit *above* the engine someday; they should not replace it.
+- **Prefect / Dagster** are workflow orchestrators sitting at a different abstraction level. They are a great fit for _between-run_ orchestration (CI sweeps, scheduled benchmarks, dataset rebuilds) but bring far too much for _intra-run_ per-sample task scheduling. They could sit _above_ the engine someday; they should not replace it.
 
 ### Non-goals
 
@@ -252,7 +252,7 @@ aef-eval engine=distributed engine.queues.generation.pool_size=4 engine.micro_ba
 ### Consequences
 
 - Good, because `LocalEngine` and `DistributedEngine` are real implementations of the same Protocol. Code that runs against one runs against the other. Tests in `tests/integration/engine_local/` cover the shared pipeline; `tests/integration/engine_distributed/` (gated by `@pytest.mark.broker`) covers Celery wiring.
-- Good, because the sharded + micro-batched + pipeline-parallel design captures the user's "isolated per-row request" mental model *and* keeps GPU utilization high. We do not have to choose.
+- Good, because the sharded + micro-batched + pipeline-parallel design captures the user's "isolated per-row request" mental model _and_ keeps GPU utilization high. We do not have to choose.
 - Good, because Celery's per-queue routing maps directly onto our pool layout. There's no scheduler hand-rolling.
 - Good, because failure semantics are uniform between engines: a row error is a recorded `MetricResult` with `status=error`, never a silent drop.
 - Good, because Redis pub/sub gives us live progress streaming for the dashboard with one extra component (already required for the broker). The frontend's Evaluation Runner card subscribes to a single `WS /runs/{run_id}/progress` endpoint.
@@ -281,7 +281,7 @@ aef-eval engine=distributed engine.queues.generation.pool_size=4 engine.micro_ba
 - **Patterns to follow**:
   - Both engines wrap their main loop in `with timed("engine.run")` and `with run_context(run_id=..., stage="setup" | "generation" | "scoring" | "persist")` from ADR-0012, so telemetry and logging context propagate.
   - Both engines call `storage.append_sample(...)` and `storage.append_metric_result(...)` in short transactions; neither holds a long-running transaction across the whole run.
-  - The Celery task functions are *thin*: they construct adapters / metrics from the run's spec, call into the same per-sample function as `LocalEngine`, and return a Pydantic-shaped result. There is no business logic that lives only in Celery tasks.
+  - The Celery task functions are _thin_: they construct adapters / metrics from the run's spec, call into the same per-sample function as `LocalEngine`, and return a Pydantic-shaped result. There is no business logic that lives only in Celery tasks.
   - `ProgressSink` payloads are typed Pydantic events (`SampleStarted`, `SampleCompleted`, `SampleFailed`, `StageStarted`, `StageCompleted`, `RunFinalized`); never `Dict[str, Any]`.
   - `EngineConfig.queues.generation.pool_size` defaults are: `LocalEngine` → `1` (single GPU), `DistributedEngine` → `0` (operator-supplied; the engine refuses to start without an explicit number).
 - **Patterns to avoid**:
@@ -358,10 +358,10 @@ aef-eval engine=distributed engine.queues.generation.pool_size=4 engine.micro_ba
 ### Prefect / Dagster (workflow orchestrators)
 
 - Good, because excellent observability and DAG-style workflow support out of the box.
-- Good, because a great fit for *between-run* orchestration (CI sweeps, scheduled regression benchmarks, dataset preparation jobs).
-- Bad, because they are at the wrong abstraction level for *per-row* task scheduling. Each row is not a workflow; the run is.
+- Good, because a great fit for _between-run_ orchestration (CI sweeps, scheduled regression benchmarks, dataset preparation jobs).
+- Bad, because they are at the wrong abstraction level for _per-row_ task scheduling. Each row is not a workflow; the run is.
 - Bad, because adding either as the per-row scheduler would couple our entire engine to their ecosystem.
-- Verdict: rejected as the engine; both remain candidates for a future "pipeline orchestrator" sitting *above* the engine, in a separate ADR.
+- Verdict: rejected as the engine; both remain candidates for a future "pipeline orchestrator" sitting _above_ the engine, in a separate ADR.
 
 ## More Information
 
@@ -376,12 +376,12 @@ aef-eval engine=distributed engine.queues.generation.pool_size=4 engine.micro_ba
 - Related ADRs:
   - [`0003-adapter-architecture-for-models-and-datasets.md`](0003-adapter-architecture-for-models-and-datasets.md) — adapter capabilities (`max_context_tokens`, `supported_sampling_parameters`) drive engine validation and scheduling.
   - [`0006-persistence-sqlite-default-postgres-swap-in.md`](0006-persistence-sqlite-default-postgres-swap-in.md) — the engine writes through `StorageAdapter`. SQLite write contention under `DistributedEngine` is the documented Postgres trigger.
-  - [`0007-cli-configuration-with-hydra-and-hydra-zen.md`](0007-cli-configuration-with-hydra-and-hydra-zen.md) — `engine=local` / `engine=distributed` config groups; CLI multirun is for *between-run* sweeps and does not replace the engine.
+  - [`0007-cli-configuration-with-hydra-and-hydra-zen.md`](0007-cli-configuration-with-hydra-and-hydra-zen.md) — `engine=local` / `engine=distributed` config groups; CLI multirun is for _between-run_ sweeps and does not replace the engine.
   - [`0011-testing-strategy-and-mock-adapters.md`](0011-testing-strategy-and-mock-adapters.md) — engine integration tests live under `tests/integration/engine_local/` and `tests/integration/engine_distributed/` (latter gated `@pytest.mark.broker`).
   - [`0012-logging-and-telemetry-contract.md`](0012-logging-and-telemetry-contract.md) — engine wraps its main loop in `run_context` and `timed` so progress events, telemetry, and logs all share `run_id` / `stage` / `sample_idx`.
   - [`0014-llm-as-judge-contract-and-bias-mitigation.md`](0014-llm-as-judge-contract-and-bias-mitigation.md) — the LLM-as-judge pool is the third worker pool described here.
 - Revisit triggers:
   - GPU pool sharing or fractional GPU allocation becomes a real requirement — design and adopt a `RayEngine` (the Protocol already permits it).
   - SQLite write contention under `DistributedEngine` becomes the bottleneck — execute the Postgres swap from ADR-0006 and update both ADRs.
-  - Cross-run orchestration (scheduled regression benchmarks, dataset prep) becomes a recurring need — adopt Prefect or Dagster *above* the engine, never inside it.
+  - Cross-run orchestration (scheduled regression benchmarks, dataset prep) becomes a recurring need — adopt Prefect or Dagster _above_ the engine, never inside it.
   - Celery 6 changes the connection / acks model — re-pin and verify; replace only if it would force code churn larger than the swap cost.

@@ -70,7 +70,7 @@ defaults:
   - output: default
   - _self_
 
-run_id: ???      # null sentinel; CLI generates a UUIDv7 if not supplied
+run_id: ??? # null sentinel; CLI generates a UUIDv7 if not supplied
 seed: 0
 hydra:
   run:
@@ -87,7 +87,7 @@ Each config group is backed by a Python dataclass produced by hydra-zen's `build
 
 **Quick glossary** (these terms appear throughout the ADR and are easy to gloss over the first time):
 
-- **`builds(Target, ..., populate_full_signature=True, zen_partial=False)`** — hydra-zen helper that produces a structured *config dataclass* whose field names match `Target`'s constructor signature. `populate_full_signature=True` tells hydra-zen to walk `Target.__init__` (or for Pydantic models, the `BaseModel`'s field set) and expose every parameter as an overridable Hydra field. `zen_partial=False` tells hydra-zen that, when Hydra calls `instantiate(config)`, it should *construct the actual `Target` object* immediately and return it. With `zen_partial=True`, `instantiate` would instead return a partially-applied callable that you invoke later — useful for "delay construction until I provide the rest of the args" patterns; not what we want here, where the goal is "give me a fully-constructed `EvaluationRunRequest` and friends, ready to hand to the engine."
+- **`builds(Target, ..., populate_full_signature=True, zen_partial=False)`** — hydra-zen helper that produces a structured _config dataclass_ whose field names match `Target`'s constructor signature. `populate_full_signature=True` tells hydra-zen to walk `Target.__init__` (or for Pydantic models, the `BaseModel`'s field set) and expose every parameter as an overridable Hydra field. `zen_partial=False` tells hydra-zen that, when Hydra calls `instantiate(config)`, it should _construct the actual `Target` object_ immediately and return it. With `zen_partial=True`, `instantiate` would instead return a partially-applied callable that you invoke later — useful for "delay construction until I provide the rest of the args" patterns; not what we want here, where the goal is "give me a fully-constructed `EvaluationRunRequest` and friends, ready to hand to the engine."
 - **`store(Conf, group="model", name="smollm")`** — registers `Conf` in hydra-zen's named config registry under the group `"model"` and the name `"smollm"`. This is the bridge between Python and the CLI: after this call, `aef-eval model=smollm` resolves to `Conf` at runtime. `store` is therefore where most defaults get written down: the config dataclass produced by `builds(...)` already carries its field defaults (because `populate_full_signature=True` introspected them), and `store` makes that named bundle available as a CLI override token. The ADR assumes you `import aef.cli.config` once at CLI startup — the side effect of that import is that every shipped config group is in the store.
 
 Skeleton (illustrative):
@@ -179,11 +179,11 @@ The CLI does **not** silently drop unsupported parameters. After `instantiate(cf
 - `run_id` is required. If absent, the CLI generates a UUIDv7 in a `pre_run` hook (so the value is set before Hydra resolves `output.dir`).
 - Run artifacts are partitioned by entry point so CLI-launched and dashboard-launched runs cannot collide on the same second:
 
-  | Entry point          | Artifact tree                                                          |
-  | -------------------- | ---------------------------------------------------------------------- |
-  | CLI (`aef-eval`)     | `outputs/cli/${now:%Y-%m-%d}/${now:%H-%M-%S}-${run_id}/`               |
-  | API server / dashboard | `outputs/frontend/${now:%Y-%m-%d}/${now:%H-%M-%S}-${run_id}/`        |
-  | Library callers      | `outputs/lib/${now:%Y-%m-%d}/${now:%H-%M-%S}-${run_id}/` (configurable; the library can also disable artifact writing entirely) |
+  | Entry point            | Artifact tree                                                                                                                   |
+  | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+  | CLI (`aef-eval`)       | `outputs/cli/${now:%Y-%m-%d}/${now:%H-%M-%S}-${run_id}/`                                                                        |
+  | API server / dashboard | `outputs/frontend/${now:%Y-%m-%d}/${now:%H-%M-%S}-${run_id}/`                                                                   |
+  | Library callers        | `outputs/lib/${now:%Y-%m-%d}/${now:%H-%M-%S}-${run_id}/` (configurable; the library can also disable artifact writing entirely) |
 
   In the table above, "frontend" labels the user-facing source even though the actual writer is the backend API process (the Angular frontend never touches the filesystem). The label is chosen for human-readability over technical purity.
 
@@ -208,7 +208,7 @@ aef-eval --multirun sampling.temperature=0.0,0.3,0.7,1.0
 aef-eval --multirun model=smollm,ollama_default sampling=greedy,balanced
 ```
 
-Hydra's `BasicLauncher` is the v1 default. The `JoblibLauncher` and `RayLauncher` plugins are **not** part of the CLI's dependency surface; if a user wants parallel multirun, they install the plugin themselves. The `DistributedEngine` (ADR-0005) handles intra-run parallelism; Hydra multirun is for *between-run* sweeps.
+Hydra's `BasicLauncher` is the v1 default. The `JoblibLauncher` and `RayLauncher` plugins are **not** part of the CLI's dependency surface; if a user wants parallel multirun, they install the plugin themselves. The `DistributedEngine` (ADR-0005) handles intra-run parallelism; Hydra multirun is for _between-run_ sweeps.
 
 ### 6. Config validation
 
@@ -222,12 +222,12 @@ Hydra's `BasicLauncher` is the v1 default. The `JoblibLauncher` and `RayLauncher
 ### 7. Library / CLI symmetry
 
 - `aef.cli.run(request: EvaluationRunRequest) -> EvaluationRunResult` is the function the Hydra entry point ultimately calls. It is also a public library function, so a Python user who already has an `EvaluationRunRequest` (constructed by hand or by another tool) can run it without going through Hydra.
-- Hydra is therefore an *optional* surface, not a required one. The contract is the Pydantic model.
+- Hydra is therefore an _optional_ surface, not a required one. The contract is the Pydantic model.
 
 ### Non-goals
 
 - We are NOT supporting `argparse`, `click`, `typer`, or any other CLI layer alongside Hydra. The CLI is single-surfaced.
-- We are NOT supporting `.env`-style flat configuration as the **primary** mechanism for evaluation-run configuration. `.env` is fine — and expected — for *runtime / environment / secret* values (database URL, log level, OTel toggle, third-party API keys); a single `.env` is loaded once by `aef.config.settings.Settings` (a `pydantic-settings` model) at process startup and read by both the CLI and the API server, so there is no key duplication between entry points. What `.env` is **not** for is the per-run configuration of model / dataset / metrics / sampling / engine — those belong in Hydra because they need composition, named presets, sweeps, per-run overrides, and a saved resolved snapshot. Treating run config as `.env`-style globals would lose all of those and would make reproducibility per run effectively impossible. The frontend/dashboard never receives `.env` contents directly: the API process reads them in-memory and exposes only what is safe through its REST/WS API.
+- We are NOT supporting `.env`-style flat configuration as the **primary** mechanism for evaluation-run configuration. `.env` is fine — and expected — for _runtime / environment / secret_ values (database URL, log level, OTel toggle, third-party API keys); a single `.env` is loaded once by `aef.config.settings.Settings` (a `pydantic-settings` model) at process startup and read by both the CLI and the API server, so there is no key duplication between entry points. What `.env` is **not** for is the per-run configuration of model / dataset / metrics / sampling / engine — those belong in Hydra because they need composition, named presets, sweeps, per-run overrides, and a saved resolved snapshot. Treating run config as `.env`-style globals would lose all of those and would make reproducibility per run effectively impossible. The frontend/dashboard never receives `.env` contents directly: the API process reads them in-memory and exposes only what is safe through its REST/WS API.
 - We are NOT supporting direct `OmegaConf` -> `dict` -> backend handoff. Every CLI invocation produces typed Pydantic objects via `instantiate`. The strict-typing rule is binding here.
 - We are NOT making Hydra mandatory for the API server. The server takes `EvaluationRunRequest` over JSON; it does not consume YAML. The CLI is the only Hydra consumer.
 - We are NOT shipping the `hydra-joblib-launcher` or `hydra-ray-launcher` plugins by default. Users who want them install them themselves.
@@ -284,7 +284,7 @@ Hydra's `BasicLauncher` is the v1 default. The `JoblibLauncher` and `RayLauncher
 - [ ] `aef-eval` (no overrides) runs the default composition (`model=smollm`, `dataset=mock`, `metrics=default`, `engine=local`, `sampling=default`) end-to-end on a clean tree with no GPU.
 - [ ] `aef-eval sampling=balanced` produces a `result.json` whose `run_request.generation_config.temperature` and `top_p` reflect the preset.
 - [ ] `aef-eval sampling.temperature=0.0 sampling.top_p=0.9` overrides individual fields without touching the rest of the preset.
-- [ ] `aef-eval model=openai_default sampling.top_k=40` exits with `UnsupportedSamplingParameterError` *before* any model call (because OpenAI's chat-completions adapter does not honor `top_k`).
+- [ ] `aef-eval model=openai_default sampling.top_k=40` exits with `UnsupportedSamplingParameterError` _before_ any model call (because OpenAI's chat-completions adapter does not honor `top_k`).
 - [ ] `aef-eval --multirun sampling.temperature=0.0,0.5,1.0` produces three runs with three distinct `run_id`s and three SQLite rows.
 - [ ] Every shipped YAML under `configs/` either composes other named entries via `defaults:` or references a hydra-zen-built `_target_`. No free-form YAML leaves.
 - [ ] After `instantiate(cfg)`, every value reaching `aef.cli.run` is a Pydantic object (verifiable by a unit test that asserts `isinstance(request, EvaluationRunRequest)` and that all fields are typed sub-models, not `DictConfig`).

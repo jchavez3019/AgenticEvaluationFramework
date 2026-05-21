@@ -1,0 +1,5 @@
+base_dir: outputs
+write_result_json: true
+write_metrics_csv: true
+write_plots: false
+write_run_log: true

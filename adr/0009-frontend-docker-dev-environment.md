@@ -41,7 +41,7 @@ Ship a single-purpose **Angular dev-mode Docker container** for the frontend, ac
 - **Entrypoint:** `npm run start` (which delegates to `ng serve --host 0.0.0.0 --port 4200 --poll 2000 --proxy-config proxy.conf.json`).
 - **Healthcheck:** an HTTP probe against `http://localhost:4200` inside the container.
 
-The Dockerfile is intentionally short. The image is a *frozen toolchain*, not an application bundle: the application's source code lives on the host and is bind-mounted into `/workspace/frontend` at runtime.
+The Dockerfile is intentionally short. The image is a _frozen toolchain_, not an application bundle: the application's source code lives on the host and is bind-mounted into `/workspace/frontend` at runtime.
 
 ### 2. Bind mounts and `node_modules` strategy
 
@@ -79,8 +79,8 @@ This means: a developer runs the backend on the host (`uv run aef-api` or `uvico
 
 - **Compose is not justified by a single container.** Compose's value is wiring multiple services. With one container, `docker run` is simpler.
 - **The backend is `uv`-managed deliberately.** The `uv.lock` already pins every Python dependency exactly. Adding a Docker layer on top would add overhead without adding reproducibility.
-- **SQLite is embedded.** There is no SQLite *service* to spin up.
-- **Redis is only required when the user opts into the distributed engine.** When that day comes, the Redis container is added behind a separate ADR or Compose file (see `revisit triggers` below). It is intentionally *not* part of the v1 frontend dev experience because most evaluation runs land on the local engine.
+- **SQLite is embedded.** There is no SQLite _service_ to spin up.
+- **Redis is only required when the user opts into the distributed engine.** When that day comes, the Redis container is added behind a separate ADR or Compose file (see `revisit triggers` below). It is intentionally _not_ part of the v1 frontend dev experience because most evaluation runs land on the local engine.
 - **Network namespace simplicity.** With one container and the backend on the host, "backend at `host.docker.internal:8000`" is a single, durable rule. Compose's separate networks would force the backend into a container too, undoing rule §3.
 
 If a contributor wants to run the backend in a container for any reason (CI, reproducibility experiments), nothing stops them — but that is a personal-environment decision, not a framework default.
@@ -101,16 +101,16 @@ If a contributor wants to run the backend in a container for any reason (CI, rep
 
   The `Makefile` (or a small wrapper script) hides this command from day-to-day use, but the flags are intentional:
 
-  | Flag | Meaning in this command |
-  | ---- | ----------------------- |
-  | `--rm` | Delete the container filesystem when it exits. The source code and `node_modules` volume remain; only the disposable container wrapper is removed. |
-  | `-it` | Allocate an interactive terminal so `ng serve` logs stream cleanly and `Ctrl+C` stops the dev server. `-i` keeps stdin open; `-t` allocates a pseudo-TTY. |
-  | `--name aef-frontend` | Gives the running container a stable name so `make frontend-shell`, `docker logs aef-frontend`, and cleanup commands can target it. |
-  | `--add-host=host.docker.internal:host-gateway` | On Linux, maps the hostname `host.docker.internal` to the host machine. This lets the Angular dev server proxy `/api` and `/ws` to the backend running on the host at port `8000`. |
-  | `-p 4200:4200` | Publishes container port `4200` to host port `4200`, so the dashboard is reachable at `http://localhost:4200`. |
-  | `-v "$(pwd)/frontend:/workspace/frontend"` | Bind-mounts the host's `frontend/` source tree into the container. Edits in Cursor are immediately visible to `ng serve`. |
-  | `-v aef-frontend-node-modules:/workspace/frontend/node_modules` | Mounts a named Docker volume for dependencies. This avoids bind-mounting host `node_modules`, which is slower and can contain platform-specific binaries. |
-  | `aef/frontend:dev` | Runs the locally built dev image, whose entrypoint starts `npm run start`. |
+  | Flag                                                            | Meaning in this command                                                                                                                                                            |
+  | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | `--rm`                                                          | Delete the container filesystem when it exits. The source code and `node_modules` volume remain; only the disposable container wrapper is removed.                                 |
+  | `-it`                                                           | Allocate an interactive terminal so `ng serve` logs stream cleanly and `Ctrl+C` stops the dev server. `-i` keeps stdin open; `-t` allocates a pseudo-TTY.                          |
+  | `--name aef-frontend`                                           | Gives the running container a stable name so `make frontend-shell`, `docker logs aef-frontend`, and cleanup commands can target it.                                                |
+  | `--add-host=host.docker.internal:host-gateway`                  | On Linux, maps the hostname `host.docker.internal` to the host machine. This lets the Angular dev server proxy `/api` and `/ws` to the backend running on the host at port `8000`. |
+  | `-p 4200:4200`                                                  | Publishes container port `4200` to host port `4200`, so the dashboard is reachable at `http://localhost:4200`.                                                                     |
+  | `-v "$(pwd)/frontend:/workspace/frontend"`                      | Bind-mounts the host's `frontend/` source tree into the container. Edits in Cursor are immediately visible to `ng serve`.                                                          |
+  | `-v aef-frontend-node-modules:/workspace/frontend/node_modules` | Mounts a named Docker volume for dependencies. This avoids bind-mounting host `node_modules`, which is slower and can contain platform-specific binaries.                          |
+  | `aef/frontend:dev`                                              | Runs the locally built dev image, whose entrypoint starts `npm run start`.                                                                                                         |
 
 - A first-run convenience target `make frontend-install` runs `npm install` inside the container so `node_modules` is populated in the named volume before the first `ng serve`.
 - A `make frontend-codegen` target runs `npm run codegen` (per ADR-0008) inside the container against the host's running backend at `http://host.docker.internal:8000/openapi.json`.
@@ -135,7 +135,7 @@ If a contributor wants to run the backend in a container for any reason (CI, rep
 
 ## Consequences
 
-- Good, because Node.js / Angular CLI / TypeScript version drift across machines is *eliminated* — the Dockerfile is the single source of truth.
+- Good, because Node.js / Angular CLI / TypeScript version drift across machines is _eliminated_ — the Dockerfile is the single source of truth.
 - Good, because `node_modules` in a named volume sidesteps the macOS bind-mount performance trap and the cross-platform native-module problem in one move.
 - Good, because the `host.docker.internal` rule makes "where is the backend?" a single, never-changing question.
 - Good, because keeping the backend on the host preserves the `uv` workflow and lets contributors use whatever Python REPL / debugger / IDE setup they already have.

@@ -8,7 +8,7 @@ decision-makers: jorgejc2
 
 ## Context and Problem Statement
 
-The framework needs a designated *default local model* that:
+The framework needs a designated _default local model_ that:
 
 - Runs end-to-end on a low-VRAM development GPU (≤ 8 GB) without quantization tricks or aggressive offloading.
 - Loads quickly enough that a smoke test (`pytest -m gpu` from ADR-0011) finishes in a few minutes, not tens of minutes.
@@ -35,17 +35,17 @@ Pin the default local model to **`HuggingFaceTB/SmolLM2-135M-Instruct`** (Huggin
 
 ### 2. Why SmolLM (and not a different small model)
 
-| Candidate                                | Size  | License            | Practical fit                                                                 |
-| ---------------------------------------- | ----- | ------------------ | ----------------------------------------------------------------------------- |
-| **`SmolLM2-135M-Instruct`** (chosen)     | 135 M | Apache 2.0         | Extremely light; realistic for smoke tests, laptop micro-batching, CPU fallback, and repeated local development. Quality is intentionally not the selection criterion. |
-| `SmolLM2-360M-Instruct`                  | 360 M | Apache 2.0         | Still light and may be useful as an optional stronger smoke model, but the default should minimize VRAM and download footprint. |
-| `SmolLM2-1.7B-Instruct`                  | 1.7 B | Apache 2.0         | Better output quality but too large for the default goal; it makes laptop micro-batching and repeated local smoke runs less accessible. |
-| `Qwen2.5-1.5B-Instruct`                  | 1.5 B | Apache 2.0         | Strong quality. Heavier license review depending on use case. Bundled template differs across versions.                  |
-| `Llama-3.2-1B-Instruct`                  | 1.0 B | Llama Community    | Strong quality. License terms preclude unconditional redistribution; users must accept Meta's terms on Hugging Face Hub. Acceptable but adds friction for new contributors. |
-| `Phi-3.5-mini-instruct`                  | 3.8 B | MIT                | Heavier on a low-VRAM GPU; harder to fit alongside an embedding model and a judge model in the same memory.              |
-| `TinyLlama/TinyLlama-1.1B-Chat-v1.0`     | 1.1 B | Apache 2.0         | Lighter, but instruction following lags meaningfully behind SmolLM2.                                                       |
+| Candidate                            | Size  | License         | Practical fit                                                                                                                                                               |
+| ------------------------------------ | ----- | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`SmolLM2-135M-Instruct`** (chosen) | 135 M | Apache 2.0      | Extremely light; realistic for smoke tests, laptop micro-batching, CPU fallback, and repeated local development. Quality is intentionally not the selection criterion.      |
+| `SmolLM2-360M-Instruct`              | 360 M | Apache 2.0      | Still light and may be useful as an optional stronger smoke model, but the default should minimize VRAM and download footprint.                                             |
+| `SmolLM2-1.7B-Instruct`              | 1.7 B | Apache 2.0      | Better output quality but too large for the default goal; it makes laptop micro-batching and repeated local smoke runs less accessible.                                     |
+| `Qwen2.5-1.5B-Instruct`              | 1.5 B | Apache 2.0      | Strong quality. Heavier license review depending on use case. Bundled template differs across versions.                                                                     |
+| `Llama-3.2-1B-Instruct`              | 1.0 B | Llama Community | Strong quality. License terms preclude unconditional redistribution; users must accept Meta's terms on Hugging Face Hub. Acceptable but adds friction for new contributors. |
+| `Phi-3.5-mini-instruct`              | 3.8 B | MIT             | Heavier on a low-VRAM GPU; harder to fit alongside an embedding model and a judge model in the same memory.                                                                 |
+| `TinyLlama/TinyLlama-1.1B-Chat-v1.0` | 1.1 B | Apache 2.0      | Lighter, but instruction following lags meaningfully behind SmolLM2.                                                                                                        |
 
-SmolLM2-135M-Instruct wins because the default model's job is not to provide high-quality generations; it is to exercise the framework's adapter, tokenization, sampling, batching, persistence, metrics, and telemetry paths as cheaply as possible. The 135M *Instruct* variant still exercises the chat-shaped code path, but keeps VRAM and download costs low enough that contributors can run tests repeatedly on laptops.
+SmolLM2-135M-Instruct wins because the default model's job is not to provide high-quality generations; it is to exercise the framework's adapter, tokenization, sampling, batching, persistence, metrics, and telemetry paths as cheaply as possible. The 135M _Instruct_ variant still exercises the chat-shaped code path, but keeps VRAM and download costs low enough that contributors can run tests repeatedly on laptops.
 
 ### 3. Optional stronger local smoke model: `SmolLM2-360M-Instruct`
 
@@ -53,7 +53,7 @@ The default smoke-test path uses the 135M model. Contributors who want slightly 
 
 - `configs/model/smollm_360m.yaml` registers `HuggingFaceTB/SmolLM2-360M-Instruct` for the same `huggingface` adapter.
 - Use it via `aef-eval model=smollm_360m`. Tests under `tests/smoke/smollm/` may opt in via a `@pytest.mark.parametrize("model", ["smollm", "smollm_360m"], ...)` strategy when the extra runtime is acceptable.
-- This is *not* the default. The default remains the 135M model so smoke tests stay as lightweight and accessible as possible.
+- This is _not_ the default. The default remains the 135M model so smoke tests stay as lightweight and accessible as possible.
 
 ### 4. What the framework guarantees about SmolLM
 
@@ -71,13 +71,13 @@ The default smoke-test path uses the 135M model. Contributors who want slightly 
   - A 5-row evaluation with `MockDatasetAdapter` and the v1 default metric suite (lexical + embedding subset; no learned/judge) completes in under 2 minutes on GPU and under 5 minutes on CPU.
   - `EvaluationRunResult.run_request.model_spec.revision` records the pinned SHA.
   - Re-running with the same `seed` produces identical generations (within HF's documented determinism guarantees).
-- The smoke test does NOT assert specific metric values — model quality drifts across HF revisions even within a single instruct release, and we do not want every checkpoint update to break CI on metric thresholds. We assert *structure*, *latency bounds*, and *determinism*; metric *quality* is a manual review concern.
+- The smoke test does NOT assert specific metric values — model quality drifts across HF revisions even within a single instruct release, and we do not want every checkpoint update to break CI on metric thresholds. We assert _structure_, _latency bounds_, and _determinism_; metric _quality_ is a manual review concern.
 
 ### 5. Update / refresh policy
 
 - The pin is reviewed once per quarter or when the upstream repo cuts a meaningful new revision.
 - Updating the pin requires a follow-up entry in this ADR's `## More Information` section with the date, the new SHA, and a one-line note on why (e.g., "upstream fixed tokenizer regression").
-- A *major* update — switching to a different model entirely — supersedes this ADR.
+- A _major_ update — switching to a different model entirely — supersedes this ADR.
 
 ### Non-goals
 
@@ -130,7 +130,7 @@ The default smoke-test path uses the 135M model. Contributors who want slightly 
 - [ ] `aef-eval model=smollm dataset=mock metrics=default sampling=greedy` runs end-to-end on a CPU laptop and on a CUDA-equipped workstation with ≤ 8 GB VRAM.
 - [ ] `tests/smoke/smollm/test_end_to_end.py` passes in the lightweight smoke job; GPU-only batching assertions are excluded by the default `pytest -m "not gpu and not network and not broker and not docker"` job (per ADR-0011).
 - [ ] The smoke test asserts on structure (`isinstance(result, EvaluationRunResult)`), on `result.run_request.model_spec.revision == <pinned SHA>`, and on `result.telemetry.total_duration_ms < 300_000` (5 minutes CPU upper bound).
-- [ ] The smoke test does NOT assert on metric *values* — only on shapes and bounds.
+- [ ] The smoke test does NOT assert on metric _values_ — only on shapes and bounds.
 - [ ] The HF adapter advertises the capability set above for the SmolLM specs (verifiable via a unit test).
 - [ ] Re-running the smoke test with `seed=0` produces a generation byte-identical to a previous run on the same hardware (within HF's determinism caveats; assertion is conditional on a `__pytest_skip_if_nondeterministic_hardware__` fixture that detects known-noisy GPU hardware).
 
@@ -139,7 +139,7 @@ The default smoke-test path uses the 135M model. Contributors who want slightly 
 - **No default local model — let users pick**: rejected. CI would have nothing concrete to test, and contributor onboarding instructions would be a flowchart instead of a one-liner.
 - **TinyLlama-1.1B as default**: rejected. Smaller and faster, but instruction-following quality is meaningfully worse, which makes "does this run produce sensible output" a less useful smoke check.
 - **Llama-3.2-1B-Instruct**: rejected for v1. Strong quality, but the license requires per-user acceptance on Hugging Face Hub — friction we do not want for default smoke tests, especially for agents that fetch weights non-interactively.
-- **Qwen2.5-1.5B-Instruct**: considered. Strong quality. Bundled chat template differs across versions and license review is more involved depending on use case. Acceptable as a *configurable* choice, not the default.
+- **Qwen2.5-1.5B-Instruct**: considered. Strong quality. Bundled chat template differs across versions and license review is more involved depending on use case. Acceptable as a _configurable_ choice, not the default.
 - **Phi-3.5-mini-instruct**: rejected. 3.8 B parameters strain a low-VRAM GPU when an embedding model and judge model also need to fit alongside.
 - **Pin to `main` instead of a SHA**: rejected. Loses reproducibility across upstream pushes.
 

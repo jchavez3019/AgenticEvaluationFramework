@@ -8,7 +8,7 @@ decision-makers: jorgejc2
 
 ## Context and Problem Statement
 
-LLM evaluation is, by nature, expensive: real models cost money (cloud APIs), GPU time (local HF / Ollama), or both. A test suite that requires real models to run is a test suite that nobody runs locally and that flakes in CI. At the same time, an evaluation framework lives or dies by correctness — we cannot rely on "looks right" because the unit under test is the thing that decides whether a *model* is right.
+LLM evaluation is, by nature, expensive: real models cost money (cloud APIs), GPU time (local HF / Ollama), or both. A test suite that requires real models to run is a test suite that nobody runs locally and that flakes in CI. At the same time, an evaluation framework lives or dies by correctness — we cannot rely on "looks right" because the unit under test is the thing that decides whether a _model_ is right.
 
 The high-level architecture document (§9.4) lays out the constraints:
 
@@ -64,14 +64,14 @@ The split is layered: `unit/` tests can be run in seconds with no external depen
 
 Markers are declared in `pyproject.toml` `[tool.pytest.ini_options]` with `--strict-markers` enabled, so an unknown marker is a test failure.
 
-| Marker             | Meaning                                                                    | CI default |
-| ------------------ | -------------------------------------------------------------------------- | ---------- |
-| (no marker)        | Pure unit / mock-driven integration test. Always runs.                     | run        |
-| `@pytest.mark.slow`| > 1s expected. Runs in PR CI but isolated in its own job.                  | run        |
-| `@pytest.mark.gpu` | Requires a CUDA-capable GPU and the `models-hf` optional group installed.  | skipped    |
-| `@pytest.mark.network`| Hits a real cloud API. Requires network and credentials.                | skipped    |
-| `@pytest.mark.broker`| Requires Redis to be reachable (for `DistributedEngine` tests).          | skipped    |
-| `@pytest.mark.docker`| Spins up a Docker container during the test.                             | skipped    |
+| Marker                 | Meaning                                                                   | CI default |
+| ---------------------- | ------------------------------------------------------------------------- | ---------- |
+| (no marker)            | Pure unit / mock-driven integration test. Always runs.                    | run        |
+| `@pytest.mark.slow`    | > 1s expected. Runs in PR CI but isolated in its own job.                 | run        |
+| `@pytest.mark.gpu`     | Requires a CUDA-capable GPU and the `models-hf` optional group installed. | skipped    |
+| `@pytest.mark.network` | Hits a real cloud API. Requires network and credentials.                  | skipped    |
+| `@pytest.mark.broker`  | Requires Redis to be reachable (for `DistributedEngine` tests).           | skipped    |
+| `@pytest.mark.docker`  | Spins up a Docker container during the test.                              | skipped    |
 
 CI runs `pytest -m "not gpu and not network and not broker and not docker"` by default. A separate scheduled CI job runs the gated suites against a hosted runner with the appropriate environment.
 
@@ -140,7 +140,7 @@ All fixtures are typed; none return `dict` or untyped tuples.
 ### 5. Coverage target
 
 - `pytest --cov=aef --cov-fail-under=85` enforces ≥85% line coverage on `aef.*` for the default (mock-driven) test selection. Smoke tests are not counted (their job is end-to-end correctness, not coverage).
-- Branches and exception paths must be covered for every adapter, every metric, the engine state machine, and the persistence layer. Coverage is necessary but not sufficient — review still focuses on whether tests exercise the *behavior* and not just the *lines*.
+- Branches and exception paths must be covered for every adapter, every metric, the engine state machine, and the persistence layer. Coverage is necessary but not sufficient — review still focuses on whether tests exercise the _behavior_ and not just the _lines_.
 
 ### 6. Determinism rules
 
@@ -214,8 +214,8 @@ All fixtures are typed; none return `dict` or untyped tuples.
 
 - **`unittest.mock.patch` everywhere**: rejected. Patching SDK internals couples tests to library implementation details. The mock adapters intercept at the project's own seam.
 - **A separate "test mode" flag in real adapters**: rejected. Putting test logic in production adapters is exactly the coupling we want to avoid; the adapter registry pattern (ADR-0003) makes it unnecessary.
-- **VCR / cassette-based recording of real model responses**: considered. Useful for cloud-API smoke tests, but ill-suited as the *primary* mocking strategy because cassettes drift silently when prompts change. Could be revisited as a supplemental tool inside `tests/smoke/cloud/` if needed.
-- **Hypothesis-based property tests for metrics**: considered, and recommended as an *additive* tool inside `tests/unit/metrics/` rather than the default style. This ADR does not block its use.
+- **VCR / cassette-based recording of real model responses**: considered. Useful for cloud-API smoke tests, but ill-suited as the _primary_ mocking strategy because cassettes drift silently when prompts change. Could be revisited as a supplemental tool inside `tests/smoke/cloud/` if needed.
+- **Hypothesis-based property tests for metrics**: considered, and recommended as an _additive_ tool inside `tests/unit/metrics/` rather than the default style. This ADR does not block its use.
 - **No coverage gate**: rejected. A self-policing rule with no automation erodes. 85% is a deliberate floor, not a ceiling.
 
 ## More Information

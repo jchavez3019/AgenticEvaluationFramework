@@ -1,0 +1,195 @@
+{
+  "aggregate_metric_results": [
+    {
+      "compute_latency_ms": 0.0,
+      "exception_class": null,
+      "exception_message": null,
+      "metric_name": "exact_match",
+      "metric_version": "1.0",
+      "sample_idx": null,
+      "status": "ok",
+      "sub_values": [],
+      "value": 1.0
+    }
+  ],
+  "error": null,
+  "finished_at": "2026-01-01T12:00:01Z",
+  "generations": [
+    {
+      "finish_reason": "stop",
+      "latency_ms": 2.5,
+      "text": "4",
+      "trace": [],
+      "usage": {
+        "completion_tokens": 1,
+        "cost_usd": null,
+        "prompt_tokens": 4,
+        "total_tokens": 5
+      }
+    }
+  ],
+  "metric_results": [
+    {
+      "compute_latency_ms": 0.1,
+      "exception_class": null,
+      "exception_message": null,
+      "metric_name": "exact_match",
+      "metric_version": "1.0",
+      "sample_idx": 0,
+      "status": "ok",
+      "sub_values": [],
+      "value": 1.0
+    }
+  ],
+  "request": {
+    "dataset": {
+      "config": {},
+      "dataset_id": "mock-ds-1",
+      "description": null,
+      "name": "mock",
+      "provides": [
+        "reference"
+      ],
+      "row_count": 2
+    },
+    "description": null,
+    "engine": {
+      "acks_late": true,
+      "broker_url": null,
+      "cancel_grace_seconds": 30,
+      "kind": "local",
+      "micro_batch_size": 1,
+      "micro_batch_timeout_ms": 25,
+      "queues": {
+        "generation": {
+          "max_queue_depth": 16,
+          "pool_size": 1
+        },
+        "scoring_cpu": {
+          "max_queue_depth": 32,
+          "pool_size": 2
+        },
+        "scoring_judge": {
+          "max_queue_depth": 16,
+          "pool_size": 0
+        }
+      }
+    },
+    "judge": null,
+    "metrics": [
+      {
+        "applicable_when": {
+          "requires_context": false,
+          "requires_gold_context": false,
+          "requires_reference": false,
+          "requires_references": false
+        },
+        "config": {},
+        "cost_reporting": "none",
+        "is_remote": false,
+        "kind": "lexical",
+        "name": "exact_match",
+        "required_inputs": [
+          "reference"
+        ],
+        "requires_gpu": false,
+        "version": "1.0"
+      }
+    ],
+    "model": {
+      "capabilities": {
+        "cost_reporting": "none",
+        "family": "mock",
+        "is_remote": false,
+        "max_context_tokens": null,
+        "requires_gpu": false,
+        "supported_sampling_parameters": [
+          "seed",
+          "temperature"
+        ],
+        "supports_streaming": false,
+        "supports_tool_use": false
+      },
+      "config": {},
+      "description": null,
+      "model_id": "mock-chat-1",
+      "name": "mock-chat"
+    },
+    "output": {
+      "base_dir": "outputs",
+      "write_metrics_csv": true,
+      "write_plots": false,
+      "write_result_json": true,
+      "write_run_log": true
+    },
+    "run_id": "run-golden",
+    "sampling": {
+      "max_output_tokens": null,
+      "repetition_penalty": null,
+      "seed": 0,
+      "temperature": 0.0,
+      "top_k": null,
+      "top_p": null
+    },
+    "seed": 0,
+    "title": "walking-skeleton smoke run"
+  },
+  "run_id": "run-golden",
+  "samples": [
+    {
+      "context": null,
+      "gold_context": null,
+      "idx": 0,
+      "input": "What is 2+2?",
+      "metadata": {
+        "category": null,
+        "dataset_split": "test",
+        "difficulty": null,
+        "language": null,
+        "tags": []
+      },
+      "reference": "4",
+      "references": null
+    }
+  ],
+  "started_at": "2026-01-01T12:00:00Z",
+  "status": "succeeded",
+  "telemetry": {
+    "counters": {
+      "generation_tokens_per_sec": 400.0,
+      "queue_depths": [],
+      "scoring_samples_per_sec": 10000.0
+    },
+    "finished_at": "2026-01-01T12:00:01Z",
+    "per_record": [
+      {
+        "duration_ms": 2.5,
+        "exception_class": null,
+        "phase": "generation",
+        "sample_idx": 0,
+        "stage": "generation"
+      },
+      {
+        "duration_ms": 0.1,
+        "exception_class": null,
+        "phase": "metric.exact_match",
+        "sample_idx": 0,
+        "stage": "scoring"
+      }
+    ],
+    "per_stage": [
+      {
+        "error_count": 0,
+        "p50_ms": 2.5,
+        "p95_ms": 2.5,
+        "p99_ms": 2.5,
+        "samples_processed": 1,
+        "stage": "generation",
+        "total_ms": 2.5
+      }
+    ],
+    "run_id": "run-golden",
+    "started_at": "2026-01-01T12:00:00Z",
+    "total_duration_ms": 1000.0
+  }
+}

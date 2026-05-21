@@ -10,7 +10,7 @@ decision-makers: jorgejc2
 
 The Agentic Evaluation Framework is being designed as a multi-layer system (Python backend, Python CLI, Angular frontend) with several non-trivial architectural choices: an adapter pattern for models and datasets, a hybrid local/distributed execution engine, a persistent SQLite-backed run store, strict typing rules, and a metric plugin system. Many of these choices have realistic alternatives and meaningful long-term consequences.
 
-We expect this framework to be extended over time both by humans and by coding agents. Without a durable record of *why* a particular pattern was chosen, future contributors will:
+We expect this framework to be extended over time both by humans and by coding agents. Without a durable record of _why_ a particular pattern was chosen, future contributors will:
 
 - Re-litigate decisions that have already been considered.
 - Introduce dependencies, patterns, or workflows that contradict prior choices without realizing it.

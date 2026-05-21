@@ -15,22 +15,22 @@ If you are an agent working in this repository, **read the relevant ADRs before 
 
 The table below is the canonical list of ADRs in this project. Status reflects the current lifecycle state. The high-level architecture document (`../high_level_architecture.md`) cross-references these by number.
 
-| #    | Title                                                              | Status   | Scope                            |
-| ---- | ------------------------------------------------------------------ | -------- | -------------------------------- |
-| 0001 | [Adopt Architecture Decision Records](0001-adopt-architecture-decision-records.md) | proposed | Process / governance             |
-| 0002 | [Backend Technology Stack](0002-backend-technology-stack.md)       | proposed | Backend foundation               |
-| 0003 | [Adapter Architecture for Models and Datasets](0003-adapter-architecture-for-models-and-datasets.md) | proposed | Backend extensibility            |
-| 0004 | [Default Metric Suite and Metric-Plugin Contract](0004-default-metric-suite-and-plugin-contract.md) | proposed | Backend metrics                  |
-| 0005 | [Execution Engine — Local and Distributed](0005-execution-engine-local-and-distributed.md) | proposed | Backend scalability              |
-| 0006 | [Persistence — SQLite Default, Postgres Swap-In](0006-persistence-sqlite-default-postgres-swap-in.md) | proposed | Backend storage                  |
-| 0007 | [CLI Configuration with Hydra and hydra-zen](0007-cli-configuration-with-hydra-and-hydra-zen.md) | proposed | CLI                              |
-| 0008 | [Frontend Stack — Angular, Strict TS, Plotly, Mermaid](0008-frontend-stack-angular-strict-typescript-plotly-mermaid.md) | proposed | Frontend                         |
-| 0009 | [Frontend Docker Dev Environment](0009-frontend-docker-dev-environment.md) | proposed | Frontend / dev environment       |
-| 0010 | [Code-Quality Standards](0010-code-quality-standards.md)           | proposed | Cross-cutting                    |
-| 0011 | [Testing Strategy and Mock Adapters](0011-testing-strategy-and-mock-adapters.md) | proposed | Cross-cutting                    |
-| 0012 | [Logging and Telemetry Contract](0012-logging-and-telemetry-contract.md) | proposed | Cross-cutting                    |
-| 0013 | [Default Local Model — SmolLM](0013-default-local-model-smollm.md) | proposed | Backend / dev environment        |
-| 0014 | [LLM-as-Judge Contract and Bias-Mitigation Defaults](0014-llm-as-judge-contract-and-bias-mitigation.md) | proposed | Backend metrics                  |
+| #    | Title                                                                                                                   | Status   | Scope                      |
+| ---- | ----------------------------------------------------------------------------------------------------------------------- | -------- | -------------------------- |
+| 0001 | [Adopt Architecture Decision Records](0001-adopt-architecture-decision-records.md)                                      | proposed | Process / governance       |
+| 0002 | [Backend Technology Stack](0002-backend-technology-stack.md)                                                            | proposed | Backend foundation         |
+| 0003 | [Adapter Architecture for Models and Datasets](0003-adapter-architecture-for-models-and-datasets.md)                    | proposed | Backend extensibility      |
+| 0004 | [Default Metric Suite and Metric-Plugin Contract](0004-default-metric-suite-and-plugin-contract.md)                     | proposed | Backend metrics            |
+| 0005 | [Execution Engine — Local and Distributed](0005-execution-engine-local-and-distributed.md)                              | proposed | Backend scalability        |
+| 0006 | [Persistence — SQLite Default, Postgres Swap-In](0006-persistence-sqlite-default-postgres-swap-in.md)                   | proposed | Backend storage            |
+| 0007 | [CLI Configuration with Hydra and hydra-zen](0007-cli-configuration-with-hydra-and-hydra-zen.md)                        | proposed | CLI                        |
+| 0008 | [Frontend Stack — Angular, Strict TS, Plotly, Mermaid](0008-frontend-stack-angular-strict-typescript-plotly-mermaid.md) | proposed | Frontend                   |
+| 0009 | [Frontend Docker Dev Environment](0009-frontend-docker-dev-environment.md)                                              | proposed | Frontend / dev environment |
+| 0010 | [Code-Quality Standards](0010-code-quality-standards.md)                                                                | proposed | Cross-cutting              |
+| 0011 | [Testing Strategy and Mock Adapters](0011-testing-strategy-and-mock-adapters.md)                                        | proposed | Cross-cutting              |
+| 0012 | [Logging and Telemetry Contract](0012-logging-and-telemetry-contract.md)                                                | proposed | Cross-cutting              |
+| 0013 | [Default Local Model — SmolLM](0013-default-local-model-smollm.md)                                                      | proposed | Backend / dev environment  |
+| 0014 | [LLM-as-Judge Contract and Bias-Mitigation Defaults](0014-llm-as-judge-contract-and-bias-mitigation.md)                 | proposed | Backend metrics            |
 
 ## Code ↔ ADR Linking
 

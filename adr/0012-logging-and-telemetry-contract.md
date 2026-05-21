@@ -47,7 +47,7 @@ A single `configure_logging(settings: LoggingSettings) -> None` function configu
 
 - `aef.cli` after Hydra resolves the run directory. The file handler points at `outputs/cli/<date>/<time>-<run_id>/run.log`.
 - `aef.api.app` during FastAPI startup. Two file handlers are attached:
-  1. A rotating *server* handler at `outputs/frontend/server.log` (path overridable via `AEF_API_LOG_PATH`) that captures uvicorn / FastAPI / background-task records — i.e., everything that is not bound to a specific run.
+  1. A rotating _server_ handler at `outputs/frontend/server.log` (path overridable via `AEF_API_LOG_PATH`) that captures uvicorn / FastAPI / background-task records — i.e., everything that is not bound to a specific run.
   2. A per-run handler that is added dynamically when an API-launched run starts and removed when it finishes. The file path is `outputs/frontend/<date>/<time>-<run_id>/run.log`. This handler uses a `logging.Filter` that only admits records whose contextvars carry the matching `run_id`, so concurrent API runs each get their own clean log file.
 - Each distributed worker entrypoint (with rotation and a worker-id-prefixed file under `outputs/frontend/workers/<worker-id>.log`, since workers are part of the API-side execution path).
 

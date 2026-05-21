@@ -1,0 +1,6 @@
+- name: exact_match
+  kind: lexical
+- name: token_f1
+  kind: lexical
+- name: latency
+  kind: operational

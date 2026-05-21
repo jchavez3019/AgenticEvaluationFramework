@@ -76,12 +76,9 @@ flowchart LR
     UI <-- past runs --> API
 ```
 
-
-
 ### 2.1 Three Layers, One Core
 
 The backend Python package is the **single source of truth**. Both the CLI and the FastAPI service import the same core. The frontend never bypasses the API.
-
 
 | Layer        | Language | Runtime                           | Purpose                                                                     |
 | ------------ | -------- | --------------------------------- | --------------------------------------------------------------------------- |
@@ -123,7 +120,6 @@ The backend Python package is the **single source of truth**. Both the CLI and t
 ```
 
 The CLI resolves `configs/` via a workspace-root anchor (Hydra's `config_path` relative to the script entry point in `aef.cli`), so commands run from anywhere inside the repo still find the same composition.
-
 
 ---
 
@@ -290,8 +286,6 @@ outputs/
 - The container reaches the host's backend via `host.docker.internal:8000` and the Angular dev server's proxy (`/api`, `/ws`) — see ADR-0009 §3.
 - **Note on SQLite:** SQLite is an embedded database engine, not a server. The backend reads and writes a local SQLite file directly, and the frontend accesses run data only through the backend HTTP/WS API.
 
-
-
 ### 5.3 Dashboard Navigation (4 cards)
 
 1. **Evaluation Runner** — pick a model adapter + dataset adapter + metric set; submit a run; live-stream logs and per-sample progress over WebSocket; render the final `EvaluationRunResult` with charts. Sampling-parameter inputs are dynamically rendered from the resolved adapter's `capabilities.supported_sampling_parameters` (ADR-0003).
@@ -308,15 +302,15 @@ outputs/
 - Every backend run, regardless of entry point (library, CLI, API), is persisted to SQLite via `StorageAdapter`.
 - The SQLite file lives on the local filesystem during single-device development, for example under `.aef/` or `data/`.
 - Schema (initial sketch; ORM-managed via SQLAlchemy + Alembic migrations):
-  - `runs` — id, created_at, model_spec, dataset_spec, engine_kind, status, summary stats.
-  - `samples` — run_id, idx, input, reference, generation, latency_ms, error.
-  - `metric_results` — run_id, sample_idx (nullable for run-level), metric_name, value, sub-values JSON-encoded *only* when fundamentally variadic (e.g., per-class breakdowns).
+  - `runs` — `id`, `created_at`, `model_spec`, `dataset_spec`, `engine_kind`, `status`, summary stats.
+  - `samples` — `run_id`, `idx`, `input`, `reference`, `generation`, `latency_ms`, `error`.
+  - `metric_results` — `run_id`, `sample_idx` (nullable for run-level), `metric_name`, `value`, sub-values JSON-encoded _only_ when fundamentally variadic (e.g., per-class breakdowns).
   - `model_metadata` / `dataset_metadata` — denormalized for fast Metadata Viewer queries.
 - All ORM rows have a corresponding Pydantic projection; the API never returns raw ORM objects.
 
 ### 6.2 Filesystem artifacts (CLI and API-launched runs, partitioned)
 
-- Every run (CLI *and* API-launched) serializes the full `EvaluationRunResult` to a `result.json` under a partitioned tree (`outputs/cli/...` vs `outputs/frontend/...` per ADR-0006 §7 and ADR-0007 §4), along with `metrics_summary.csv` and a `plots/` subfolder.
+- Every run (CLI _and_ API-launched) serializes the full `EvaluationRunResult` to a `result.json` under a partitioned tree (`outputs/cli/...` vs `outputs/frontend/...` per ADR-0006 §7 and ADR-0007 §4), along with `metrics_summary.csv` and a `plots/` subfolder.
 - CLI runs additionally write the resolved Hydra composition under `.hydra/`; API-launched runs do not (no YAML composition for HTTP-launched runs).
 - `result.json.run_id` matches `runs.id` in the database, so artifacts can be cross-referenced from the dashboard. The Angular frontend itself never writes to the filesystem; the "frontend" partition labels the user-facing source while the backend API process is the actual writer.
 
@@ -332,12 +326,10 @@ outputs/
 
 LLM evaluation has two distinct workloads with very different shapes:
 
-
 | Stage          | Bound by                            | Cost of cold start                      | Best parallelism strategy                                |
 | -------------- | ----------------------------------- | --------------------------------------- | -------------------------------------------------------- |
 | **Generation** | GPU memory + FLOPs                  | Very high (load weights, warm KV cache) | **Batch on the same warm worker**                        |
 | **Scoring**    | CPU mostly; GPU for embedding/judge | Moderate (load embedding/judge model)   | **Distribute many small tasks, embarrassingly parallel** |
-
 
 A pure "one row = one task across the cluster" design under-utilizes a warm GPU because it pays the per-call overhead repeatedly. A pure "batch everything on one node" design under-utilizes a cluster because scoring would idle while generation runs.
 
@@ -360,12 +352,10 @@ flowchart LR
     SC3 --> AGG
 ```
 
-
-
 **Key choices:**
 
 1. **Sharded distribution + intra-shard micro-batching.** The dataset is split into shards. Each generation worker pulls a shard, then runs micro-batches (configurable, e.g., `B=8`) across its warm GPU. This keeps the GPU hot and amortizes cold-start cost, while still distributing across nodes when more nodes exist.
-2. **Pipeline parallelism between stages.** While generator A produces micro-batch *N+1*, scorer pool processes the outputs of micro-batch *N*. The scoring queue absorbs jitter.
+2. **Pipeline parallelism between stages.** While generator A produces micro-batch _N+1_, scorer pool processes the outputs of micro-batch _N_. The scoring queue absorbs jitter.
 3. **Separate worker pools.** Generation workers are GPU-pinned and long-lived (model stays loaded). Lexical/embedding scorers run in CPU workers. LLM-as-judge scorers run in their own GPU pool (because a judge model is itself a generation workload). Each pool sizes independently.
 4. **Backpressure + bounded queues.** Each stage has a max queue depth. When full, upstream blocks. This prevents OOMs on large datasets.
 5. **One row = one logical task in the broker.** Even though generation is micro-batched on the worker, the broker still tracks per-row state. Workers pull `B` ready tasks and process them as a batch. This preserves the "isolated request" mental model the user asked for **without** sacrificing GPU throughput.
@@ -501,34 +491,32 @@ A point repeatedly observed in modern NLG eval: lexical metrics correlate poorly
 
 ## 10. Tech Stack Summary
 
-
-| Concern             | Choice                                                                |
-| ------------------- | --------------------------------------------------------------------- |
-| Backend language    | Python (3.13+, <3.14)                                                        |
-| Backend framework   | FastAPI (HTTP + WebSocket)                                            |
-| Backend pkg manager | `uv`                                                                  |
-| Data validation     | Pydantic v2                                                           |
-| ORM / DB            | SQLAlchemy 2.x + Alembic, SQLite (default), Postgres (future swap-in) |
-| Distributed engine  | Celery + Redis (default), with `ExecutionEngine` abstraction          |
-| Local engine        | `asyncio` in-process pipeline                                         |
-| Model runtimes      | Hugging Face Transformers, Ollama, OpenAI/Anthropic SDKs, LangGraph   |
-| Default local LLM   | `HuggingFaceTB/SmolLM2-135M-Instruct` (SHA-pinned in ADR-0013)        |
-| CLI config          | Hydra 1.3 + hydra-zen (YAML in `configs/`)                            |
+| Concern             | Choice                                                                   |
+| ------------------- | ------------------------------------------------------------------------ |
+| Backend language    | Python (3.13+, <3.14)                                                    |
+| Backend framework   | FastAPI (HTTP + WebSocket)                                               |
+| Backend pkg manager | `uv`                                                                     |
+| Data validation     | Pydantic v2                                                              |
+| ORM / DB            | SQLAlchemy 2.x + Alembic, SQLite (default), Postgres (future swap-in)    |
+| Distributed engine  | Celery + Redis (default), with `ExecutionEngine` abstraction             |
+| Local engine        | `asyncio` in-process pipeline                                            |
+| Model runtimes      | Hugging Face Transformers, Ollama, OpenAI/Anthropic SDKs, LangGraph      |
+| Default local LLM   | `HuggingFaceTB/SmolLM2-135M-Instruct` (SHA-pinned in ADR-0013)           |
+| CLI config          | Hydra 1.3 + hydra-zen (YAML in `configs/`)                               |
 | Testing             | `pytest`, `pytest-asyncio`, `pytest-cov`, `pytest-randomly`, `freezegun` |
-| Lint / format (Py)  | Ruff (lint + format); no Pylint                                       |
-| Type check (Py)     | Pyright strict (ADR-0010)                                             |
-| Logging             | stdlib `logging` + `python-json-logger` (ADR-0012)                    |
-| Frontend            | Angular (latest LTS), strict TypeScript, standalone components, Signals |
-| Frontend dev only   | `ng serve` in Docker, no production build artifact                    |
-| Charts              | Plotly.js (single library, wrapped behind `<aef-chart>`)              |
-| Diagrams            | `mermaid.js`                                                          |
-| Styling             | Tailwind CSS + Angular Material                                       |
-| Lint / format (TS)  | ESLint + Prettier (via `eslint-config-prettier`)                      |
-| Orchestration       | Frontend Docker container only for v1; Compose deferred               |
-| Pre-commit          | `pre-commit` framework (Ruff, Pyright, ESLint, Prettier, smoke pytest) |
-| Docs format (Py)    | reStructuredText                                                      |
-| Docs format (TS)    | TSDoc                                                                 |
-
+| Lint / format (Py)  | Ruff (lint + format); no Pylint                                          |
+| Type check (Py)     | Pyright strict (ADR-0010)                                                |
+| Logging             | stdlib `logging` + `python-json-logger` (ADR-0012)                       |
+| Frontend            | Angular (latest LTS), strict TypeScript, standalone components, Signals  |
+| Frontend dev only   | `ng serve` in Docker, no production build artifact                       |
+| Charts              | Plotly.js (single library, wrapped behind `<aef-chart>`)                 |
+| Diagrams            | `mermaid.js`                                                             |
+| Styling             | Tailwind CSS + Angular Material                                          |
+| Lint / format (TS)  | ESLint + Prettier (via `eslint-config-prettier`)                         |
+| Orchestration       | Frontend Docker container only for v1; Compose deferred                  |
+| Pre-commit          | `pre-commit` framework (Ruff, Pyright, ESLint, Prettier, smoke pytest)   |
+| Docs format (Py)    | reStructuredText                                                         |
+| Docs format (TS)    | TSDoc                                                                    |
 
 ---
 
@@ -578,4 +566,3 @@ The set above is the complete v1 ADR roster. Future decisions extend the index i
 - **Sample** — one row of the dataset.
 - **Judge** — an LLM used as a metric (LLM-as-judge). Implemented as a `ModelAdapter` with extra schema requirements on its output.
 - **Stage** — `generation` or `scoring`. The two halves of the pipeline.
-

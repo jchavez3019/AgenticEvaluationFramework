@@ -37,7 +37,7 @@ ADR-0014 specializes the LLM-as-judge family further; this ADR fixes the contrac
 
 ## Considered Options
 
-There is one realistic option for the contract shape itself (a Protocol + registry, mirroring ADR-0003), so this ADR uses the simple template format and uses MADR-style sub-arguments only inside the *suite* selection (which metrics to ship in v1).
+There is one realistic option for the contract shape itself (a Protocol + registry, mirroring ADR-0003), so this ADR uses the simple template format and uses MADR-style sub-arguments only inside the _suite_ selection (which metrics to ship in v1).
 
 Considered but rejected: an inheritance-based `BaseMetric` class hierarchy. Rationale in Alternatives Considered.
 
@@ -99,7 +99,7 @@ class Metric(Protocol):
 - `name: str` — registry key.
 - `kind: MetricKind` — pool-routing hint for the engine (per ADR-0005).
 - `version: str` — semver. Stored on `MetricResult` so persistence is reproducible across upgrades.
-- `required_inputs: frozenset[Literal["reference", "references", "context", "gold_context"]]` — declarative. The engine validates the dataset row provides what each metric needs *before* dispatching the run, refusing with a clear error if not. RAG metrics declare `"context"` (and optionally `"gold_context"`); answer-relevancy declares no references at all; BLEU declares `"reference"` or `"references"`.
+- `required_inputs: frozenset[Literal["reference", "references", "context", "gold_context"]]` — declarative. The engine validates the dataset row provides what each metric needs _before_ dispatching the run, refusing with a clear error if not. RAG metrics declare `"context"` (and optionally `"gold_context"`); answer-relevancy declares no references at all; BLEU declares `"reference"` or `"references"`.
 - `requires_gpu: bool` — embedding metrics with large encoders, BERTScore, learned metrics may set this.
 - `is_remote: bool` — true for cloud judges (the metric layer reuses the same adapter capability semantics as ADR-0003).
 - `cost_reporting: Literal["full", "tokens-only", "none"]`.
@@ -136,7 +136,7 @@ class MetricResult(BaseModel):
 This contract gives every metric the same persistable shape:
 
 - A single primary scalar lives in `value` for the dashboard's quick-look columns.
-- Multi-valued metrics (ROUGE-1/2/L/Lsum, BERTScore P/R/F1) use `sub_values: list[SubScore]` — a typed, structured list, *not* `Dict[str, Any]`.
+- Multi-valued metrics (ROUGE-1/2/L/Lsum, BERTScore P/R/F1) use `sub_values: list[SubScore]` — a typed, structured list, _not_ `Dict[str, Any]`.
 - Skipped samples carry `status="skipped"` and `value=None`. Aggregations skip them automatically.
 - Per-sample compute latency feeds the run's `TelemetryReport` (ADR-0012).
 
@@ -155,35 +155,35 @@ The shipped suite, by category. Each metric has an entry in `aef.metrics.<catego
 
 #### Lexical (`aef.metrics.lexical`)
 
-| Name           | What it does                                                       | Source library                | `value` semantics            |
-| -------------- | ------------------------------------------------------------------ | ----------------------------- | ---------------------------- |
-| `bleu`         | Modified n-gram precision with brevity penalty                     | `sacrebleu>=2.4`              | corpus BLEU (0-100)          |
-| `rouge`        | ROUGE-1 / ROUGE-2 / ROUGE-L / ROUGE-Lsum                           | `rouge-score>=0.1.2`          | F1 of the configured variant; sub_values: each variant's P/R/F |
-| `ngram_overlap`| Configurable n-gram precision/recall/F1                            | in-tree (~80 LOC)             | F1                            |
-| `chrf`         | Character n-gram F-score (chrF / chrF++)                           | `sacrebleu`                   | chrF++ score                  |
-| `meteor`       | Stemming + synonym-aware n-gram alignment                          | `nltk` METEOR                 | METEOR score (0-1)            |
-| `exact_match`  | Strict string equality after configurable normalization            | in-tree                       | 1.0 / 0.0                     |
-| `token_f1`     | SQuAD-style token-level F1 (set-based)                             | in-tree                       | F1                            |
-| `fuzzy_match`  | Levenshtein / token-set ratio                                      | `rapidfuzz>=3.9`              | 0-1 ratio                     |
+| Name            | What it does                                            | Source library       | `value` semantics                                              |
+| --------------- | ------------------------------------------------------- | -------------------- | -------------------------------------------------------------- |
+| `bleu`          | Modified n-gram precision with brevity penalty          | `sacrebleu>=2.4`     | corpus BLEU (0-100)                                            |
+| `rouge`         | ROUGE-1 / ROUGE-2 / ROUGE-L / ROUGE-Lsum                | `rouge-score>=0.1.2` | F1 of the configured variant; sub_values: each variant's P/R/F |
+| `ngram_overlap` | Configurable n-gram precision/recall/F1                 | in-tree (~80 LOC)    | F1                                                             |
+| `chrf`          | Character n-gram F-score (chrF / chrF++)                | `sacrebleu`          | chrF++ score                                                   |
+| `meteor`        | Stemming + synonym-aware n-gram alignment               | `nltk` METEOR        | METEOR score (0-1)                                             |
+| `exact_match`   | Strict string equality after configurable normalization | in-tree              | 1.0 / 0.0                                                      |
+| `token_f1`      | SQuAD-style token-level F1 (set-based)                  | in-tree              | F1                                                             |
+| `fuzzy_match`   | Levenshtein / token-set ratio                           | `rapidfuzz>=3.9`     | 0-1 ratio                                                      |
 
 All lexical metrics declare `kind=LEXICAL`, `requires_gpu=False`, `is_remote=False`. They run on `local_cpu` workers (per ADR-0005).
 
 #### Embedding (`aef.metrics.embedding`)
 
-| Name             | What it does                                                                   | Source library                                        |
-| ---------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------- |
-| `semantic_sim`   | Cosine similarity over Sentence-Transformers embeddings                        | `sentence-transformers>=3` (default `all-MiniLM-L6-v2`)|
-| `bertscore`      | BERTScore precision / recall / F1                                              | `bert-score>=0.3.13`                                  |
+| Name           | What it does                                            | Source library                                          |
+| -------------- | ------------------------------------------------------- | ------------------------------------------------------- |
+| `semantic_sim` | Cosine similarity over Sentence-Transformers embeddings | `sentence-transformers>=3` (default `all-MiniLM-L6-v2`) |
+| `bertscore`    | BERTScore precision / recall / F1                       | `bert-score>=0.3.13`                                    |
 
-Embedding metrics declare `kind=EMBEDDING`. The metric's `MetricSpec.requires_gpu` is a static declaration: metrics that *require* a GPU set `True`; metrics with a viable CPU fallback set `False` and choose their runtime device dynamically at first `compute(...)` call based on `torch.cuda.is_available()`. The engine routes `requires_gpu=True` metrics to `local_gpu` and `requires_gpu=False` metrics to `local_cpu` (per ADR-0005's pool routing). For v1, both default embedding metrics (`semantic_sim`, `bertscore`) ship with `requires_gpu=False` and choose CPU vs CUDA at runtime; users who want forced GPU routing override `requires_gpu=True` in the metric config. The default embedding model is configurable per metric.
+Embedding metrics declare `kind=EMBEDDING`. The metric's `MetricSpec.requires_gpu` is a static declaration: metrics that _require_ a GPU set `True`; metrics with a viable CPU fallback set `False` and choose their runtime device dynamically at first `compute(...)` call based on `torch.cuda.is_available()`. The engine routes `requires_gpu=True` metrics to `local_gpu` and `requires_gpu=False` metrics to `local_cpu` (per ADR-0005's pool routing). For v1, both default embedding metrics (`semantic_sim`, `bertscore`) ship with `requires_gpu=False` and choose CPU vs CUDA at runtime; users who want forced GPU routing override `requires_gpu=True` in the metric config. The default embedding model is configurable per metric.
 
 #### Learned / LLM-as-judge (`aef.metrics.learned`) — see ADR-0014 for the full contract
 
-| Name              | What it does                                                                |
-| ----------------- | --------------------------------------------------------------------------- |
-| `llm_judge`       | Single-answer rubric scoring via a `JudgeAdapter`                           |
-| `pairwise_judge`  | A/B preference judging (compare two candidates against the same input)      |
-| `g_eval`          | Multi-step CoT structured judging using the same `RubricScore` schema       |
+| Name             | What it does                                                           |
+| ---------------- | ---------------------------------------------------------------------- |
+| `llm_judge`      | Single-answer rubric scoring via a `JudgeAdapter`                      |
+| `pairwise_judge` | A/B preference judging (compare two candidates against the same input) |
+| `g_eval`         | Multi-step CoT structured judging using the same `RubricScore` schema  |
 
 These declare `kind=LEARNED`. Routing depends on the underlying judge adapter: `is_remote=True` ⇒ `cloud_judge_api`; `is_remote=False` and `requires_gpu=True` ⇒ `local_gpu` (judge pool, distinct from the main generation pool). ADR-0014 specifies the judge adapter contract, versioned Jinja-2 prompt templates with bias-anchor includes, deterministic seeding (`temperature=0` + fixed `seed`), and the `BiasMitigation` defaults (position-swap for pairwise, length / style / self-preference anchors, parser retries on bad JSON).
 
@@ -195,28 +195,28 @@ These metrics are **end-to-end, externally supplied-context metrics**. They cove
 
 They do **not** inspect or instrument the underlying model/graph's internal retriever, vector store, reranker, tool calls, hidden chain state, or private RAG traces. If a LangGraph adapter or dataset explicitly exposes retrieval traces as part of its text-in/text-out contract, those traces can be evaluated. Otherwise the framework treats the model/graph as a black box and does not try to break into its internal RAG components.
 
-| Name                  | What it does                                                                                                | Notes                                          |
-| --------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| `faithfulness`        | NLI-based or judge-based: does the candidate entail from the supplied context?                              | Two implementations: `nli` and `judge`.        |
-| `answer_relevancy`    | Semantic match between the input question and the candidate answer                                          | Embedding-backed.                              |
-| `context_precision`   | Of retrieved chunks, what fraction are relevant?                                                            | Requires `gold_context`.                       |
-| `context_recall`      | Of relevant chunks, what fraction were retrieved?                                                           | Requires `gold_context`.                       |
-| `retrieval_ranking`   | Recall@k, MRR, nDCG when `gold_context` includes per-chunk relevance labels                                 | Sub-values: one per ranking statistic.         |
+| Name                | What it does                                                                   | Notes                                   |
+| ------------------- | ------------------------------------------------------------------------------ | --------------------------------------- |
+| `faithfulness`      | NLI-based or judge-based: does the candidate entail from the supplied context? | Two implementations: `nli` and `judge`. |
+| `answer_relevancy`  | Semantic match between the input question and the candidate answer             | Embedding-backed.                       |
+| `context_precision` | Of retrieved chunks, what fraction are relevant?                               | Requires `gold_context`.                |
+| `context_recall`    | Of relevant chunks, what fraction were retrieved?                              | Requires `gold_context`.                |
+| `retrieval_ranking` | Recall@k, MRR, nDCG when `gold_context` includes per-chunk relevance labels    | Sub-values: one per ranking statistic.  |
 
-If neither `context` nor `gold_context` is present, these metrics are unavailable (filtered from the resolved run *before* execution starts) with a clear message, not skipped per-sample. This avoids running an entire metric just to mark every sample skipped.
+If neither `context` nor `gold_context` is present, these metrics are unavailable (filtered from the resolved run _before_ execution starts) with a clear message, not skipped per-sample. This avoids running an entire metric just to mark every sample skipped.
 
 #### Operational (`aef.metrics.operational`) — always-on, free
 
 These run alongside generation and consume no extra model calls.
 
-| Name                  | What it does                                                                                |
-| --------------------- | ------------------------------------------------------------------------------------------- |
-| `latency`             | Per-sample generation latency, reported as `value`; sub_values: p50, p95, p99 at run level. |
-| `token_counts`        | Prompt / completion / total token counts; sub_values for each.                              |
-| `cost`                | USD per sample / per run, when the adapter reports it; null when not available.             |
-| `output_validity`     | JSON parse success rate, when the adapter declares structured output. Skipped otherwise.    |
+| Name              | What it does                                                                                |
+| ----------------- | ------------------------------------------------------------------------------------------- |
+| `latency`         | Per-sample generation latency, reported as `value`; sub_values: p50, p95, p99 at run level. |
+| `token_counts`    | Prompt / completion / total token counts; sub_values for each.                              |
+| `cost`            | USD per sample / per run, when the adapter reports it; null when not available.             |
+| `output_validity` | JSON parse success rate, when the adapter declares structured output. Skipped otherwise.    |
 
-Operational metrics are populated from `GenerationResponse` fields (per ADR-0003) and do not require a separate compute pass. They are the only metrics whose *value sources* are not the candidate text itself but the run's telemetry.
+Operational metrics are populated from `GenerationResponse` fields (per ADR-0003) and do not require a separate compute pass. They are the only metrics whose _value sources_ are not the candidate text itself but the run's telemetry.
 
 ### 5. Suggested metrics deferred to v1.x (placeholders, not shipped)
 
@@ -230,7 +230,7 @@ These match `high_level_architecture.md` §8.2 and are intentionally out of scop
 
 ### 6. Validation timing
 
-The engine performs all metric/dataset/adapter validation *before* dispatching any work:
+The engine performs all metric/dataset/adapter validation _before_ dispatching any work:
 
 - For each requested metric, `MetricSpec.required_inputs` is intersected with what the dataset adapter declares it provides. Missing inputs short-circuit with `MissingMetricInputError(metric=…, missing=…)`.
 - For each metric whose `applicable_when` is statically incompatible with the dataset, the metric is removed from the run with a single log line at start. Per-sample skipping is reserved for metrics whose applicability is sample-dependent (e.g., RAG faithfulness on a dataset where some rows have context and others do not).
@@ -239,9 +239,9 @@ The engine performs all metric/dataset/adapter validation *before* dispatching a
 ### Non-goals
 
 - We are NOT shipping toxicity, PII, hallucination-NLI, calibration, or diversity metrics in v1. See §5 above.
-- We are NOT supporting metric *chains* in v1 (e.g., "feed BERTScore output into LLM-as-judge"). Each metric stands alone; composition is the user's responsibility.
-- We are NOT exposing metric-internal state (intermediate scores, per-token weights) on `MetricResult`. The structured `sub_values: list[SubScore]` is the only escape hatch, and it is for *named* sub-scores.
-- We are NOT defining a metric *interpretation* layer. The dashboard renders raw values; explanatory commentary lives in the Knowledge Base ("Blog") section of the frontend (per high-level architecture §5.3).
+- We are NOT supporting metric _chains_ in v1 (e.g., "feed BERTScore output into LLM-as-judge"). Each metric stands alone; composition is the user's responsibility.
+- We are NOT exposing metric-internal state (intermediate scores, per-token weights) on `MetricResult`. The structured `sub_values: list[SubScore]` is the only escape hatch, and it is for _named_ sub-scores.
+- We are NOT defining a metric _interpretation_ layer. The dashboard renders raw values; explanatory commentary lives in the Knowledge Base ("Blog") section of the frontend (per high-level architecture §5.3).
 - We are NOT exposing untyped extras via `Dict[str, Any]`. New metric outputs add typed fields or registered `SubScore` entries.
 
 ## Consequences
@@ -281,7 +281,7 @@ The engine performs all metric/dataset/adapter validation *before* dispatching a
   - All upstream-library imports are deferred to first construction (`def __init__: from sacrebleu import ...`), so importing `aef.metrics` does not pull `transformers` etc.
   - All metric outputs route their primary scalar through `value` and any breakdown through `sub_values`. Never invent a sibling field.
   - All metrics call `with timed(f"metric.{self.spec.name}")` inside `compute` so per-sample latency is captured.
-  - Metric-level config (e.g., ROUGE variants list, embedding model id) lives on the metric's `MetricSpec.config: TypedConfigSubModel` — *not* a `Dict[str, Any]`.
+  - Metric-level config (e.g., ROUGE variants list, embedding model id) lives on the metric's `MetricSpec.config: TypedConfigSubModel` — _not_ a `Dict[str, Any]`.
 - **Patterns to avoid**:
   - Do NOT add metric-specific branches in the engine (per ADR-0005). Pool routing comes from `MetricSpec.kind` plus `requires_gpu` / `is_remote`, nothing else.
   - Do NOT use `Dict[str, Any]` for metric outputs, even for "extras". Add a typed field or a registered `SubScore`.

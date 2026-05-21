@@ -1,0 +1,62 @@
+# Pre-commit configuration — orchestrates Ruff, Pyright, and a pytest smoke
+# pass per ADR-0010.
+#
+# Frontend hooks (ESLint + Prettier) land alongside the Angular app in a
+# follow-up plan. The Markdown / YAML formatter hook here covers documentation
+# until then.
+
+minimum_pre_commit_version: "3.7.0"
+
+default_language_version:
+  python: python3.13
+
+repos:
+  # Ruff: lint + format. Pinned via pyproject.toml dev group as well; this
+  # mirror gives us the editor-side autofix path.
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.5.7
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^backend/(src|tests)/.*\.py$
+      - id: ruff-format
+        files: ^backend/(src|tests)/.*\.py$
+
+  # Pyright via the local uv-managed environment so the version matches
+  # backend/pyproject.toml exactly.
+  - repo: local
+    hooks:
+      - id: pyright
+        name: pyright (strict)
+        language: system
+        types: [python]
+        files: ^backend/src/.*\.py$
+        pass_filenames: false
+        entry: bash -lc 'cd backend && uv run pyright src'
+
+      - id: pytest-smoke
+        name: pytest smoke
+        language: system
+        types: [python]
+        files: ^backend/(src|tests)/.*\.py$
+        pass_filenames: false
+        entry: bash -lc 'cd backend && uv run pytest -q --no-header'
+
+  # Misc hygiene.
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+
+  # Markdown / YAML formatting until the frontend Prettier hook lands.
+  - repo: https://github.com/rbubley/mirrors-prettier
+    rev: v3.3.3
+    hooks:
+      - id: prettier
+        types_or: [markdown, yaml, json]
+        exclude: ^backend/uv\.lock$
