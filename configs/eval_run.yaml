@@ -13,7 +13,7 @@
 # ADR: CLI Configuration with Hydra and hydra-zen
 # See: adr/0007-cli-configuration-with-hydra-and-hydra-zen.md
 
-run_id: PLACEHOLDER          # generated automatically when "PLACEHOLDER".
+run_id: PLACEHOLDER # generated automatically when "PLACEHOLDER".
 title: walking-skeleton mock run
 seed: 0
 

@@ -47,9 +47,7 @@
       "dataset_id": "mock-ds-1",
       "description": null,
       "name": "mock",
-      "provides": [
-        "reference"
-      ],
+      "provides": ["reference"],
       "row_count": 2
     },
     "description": null,
@@ -89,9 +87,7 @@
         "is_remote": false,
         "kind": "lexical",
         "name": "exact_match",
-        "required_inputs": [
-          "reference"
-        ],
+        "required_inputs": ["reference"],
         "requires_gpu": false,
         "version": "1.0"
       }
@@ -103,10 +99,7 @@
         "is_remote": false,
         "max_context_tokens": null,
         "requires_gpu": false,
-        "supported_sampling_parameters": [
-          "seed",
-          "temperature"
-        ],
+        "supported_sampling_parameters": ["seed", "temperature"],
         "supports_streaming": false,
         "supports_tool_use": false
       },
