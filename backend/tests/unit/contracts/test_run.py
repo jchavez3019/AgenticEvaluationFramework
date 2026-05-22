@@ -1,4 +1,4 @@
-"""Round-trip and golden-snapshot tests for ``aef.contracts.run``."""
+"""Round-trip and golden-snapshot tests for ``backend.contracts.run``."""
 
 from __future__ import annotations
 
@@ -6,13 +6,13 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
-from aef.contracts.adapter_spec import (
+from backend.contracts.adapter_spec import (
     DatasetAdapterSpec,
     ModelAdapterSpec,
     ModelCapabilities,
 )
-from aef.contracts.metric_result import MetricKind, MetricResult, MetricSpec, MetricStatus
-from aef.contracts.primitives import (
+from backend.contracts.metric_result import MetricKind, MetricResult, MetricSpec, MetricStatus
+from backend.contracts.primitives import (
     ChatMessage,
     EvaluationSample,
     GenerationConfig,
@@ -21,8 +21,8 @@ from aef.contracts.primitives import (
     SampleMetadata,
     Usage,
 )
-from aef.contracts.run import EvaluationRunRequest, EvaluationRunResult
-from aef.contracts.telemetry import (
+from backend.contracts.run import EvaluationRunRequest, EvaluationRunResult
+from backend.contracts.telemetry import (
     StageSummary,
     TelemetryReport,
     ThroughputCounters,
@@ -33,6 +33,13 @@ GOLDEN_DIR = Path(__file__).parent.parent.parent / "fixtures" / "golden"
 
 
 def _make_request(*, run_id: str = "run-golden") -> EvaluationRunRequest:
+    """
+    Make request.
+
+    :param run_id: Unique run identifier.
+
+    :return: A :class:`EvaluationRunRequest` instance.
+    """
     return EvaluationRunRequest(
         run_id=run_id,
         title="walking-skeleton smoke run",
@@ -64,6 +71,13 @@ def _make_request(*, run_id: str = "run-golden") -> EvaluationRunRequest:
 
 
 def _make_result(*, request: EvaluationRunRequest) -> EvaluationRunResult:
+    """
+    Make result.
+
+    :param request: The evaluation run request.
+
+    :return: A :class:`EvaluationRunResult` instance.
+    """
     started = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)
     finished = datetime(2026, 1, 1, 12, 0, 1, tzinfo=UTC)
     return EvaluationRunResult(
@@ -145,12 +159,14 @@ def _make_result(*, request: EvaluationRunRequest) -> EvaluationRunResult:
 
 
 def test_evaluation_run_request_round_trip() -> None:
+    """Verify evaluation run request round trip."""
     req = _make_request()
     rebuilt = EvaluationRunRequest.model_validate(req.model_dump())
     assert rebuilt == req
 
 
 def test_evaluation_run_request_serializes_generation_config_verbatim() -> None:
+    """Verify evaluation run request serializes generation config verbatim."""
     req = _make_request()
     dumped = req.model_dump()
     assert dumped["sampling"]["temperature"] == 0.0
@@ -159,6 +175,7 @@ def test_evaluation_run_request_serializes_generation_config_verbatim() -> None:
 
 
 def test_chat_message_inside_generation_request_round_trip() -> None:
+    """Verify chat message inside generation request round trip."""
     gr = GenerationRequest(
         messages=[
             ChatMessage(role="system", content="Be concise."),
@@ -170,6 +187,7 @@ def test_chat_message_inside_generation_request_round_trip() -> None:
 
 
 def test_evaluation_run_result_round_trip() -> None:
+    """Verify evaluation run result round trip."""
     req = _make_request()
     result = _make_result(request=req)
     rebuilt = EvaluationRunResult.model_validate(result.model_dump())
@@ -177,10 +195,14 @@ def test_evaluation_run_result_round_trip() -> None:
 
 
 def test_evaluation_run_result_matches_golden_snapshot() -> None:
-    """Lock the JSON wire shape of an :class:`EvaluationRunResult`.
+    """
+    Lock the JSON wire shape of an :class:`EvaluationRunResult`.
 
-    On first run, missing the golden file will create it. Subsequent runs
-    must match it byte-for-byte.
+    On first run, missing the golden file will create it. Subsequent runs must match it
+    byte-for-byte.
+
+
+    :return: :class:`None` instance.
     """
     req = _make_request()
     result = _make_result(request=req)

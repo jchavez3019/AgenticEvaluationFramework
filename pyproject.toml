@@ -1,0 +1,9 @@
+[project]
+name = "AgenticEvaluationFramework"
+version = "0.1.0"
+description = "An e2e evaluation framework for LLMs and agentic graphs with textual interfaces."
+requires-python = ">=3.13,<3.14"
+readme = "README.md"
+
+[tool.uv.workspace]
+members = ["backend", "cli"]

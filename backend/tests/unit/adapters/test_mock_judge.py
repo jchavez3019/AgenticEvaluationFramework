@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import pytest
 
-from aef.adapters.models.mocks import (
+from backend.adapters.models.mocks import (
     MatchAny,
     MockChatModelError,
     MockJudge,
     MockJudgeScript,
 )
-from aef.contracts.adapter_spec import JudgeAdapterSpec
-from aef.contracts.primitives import (
+from backend.contracts.adapter_spec import JudgeAdapterSpec
+from backend.contracts.primitives import (
     CriterionScore,
     JudgmentRequest,
     Rubric,
@@ -21,6 +21,11 @@ from aef.contracts.primitives import (
 
 
 def _rubric() -> Rubric:
+    """
+    Rubric.
+
+    :return: A :class:`Rubric` instance.
+    """
     return Rubric(
         name="quality",
         version="1",
@@ -35,6 +40,11 @@ def _rubric() -> Rubric:
 
 
 def _spec() -> JudgeAdapterSpec:
+    """
+    Spec.
+
+    :return: A :class:`JudgeAdapterSpec` instance.
+    """
     return JudgeAdapterSpec(
         name="mock-judge",
         model_id="mock-judge-id",
@@ -44,6 +54,13 @@ def _spec() -> JudgeAdapterSpec:
 
 
 def _request(candidate: str) -> JudgmentRequest:
+    """
+    Request.
+
+    :param candidate: The candidate.
+
+    :return: A :class:`JudgmentRequest` instance.
+    """
     return JudgmentRequest(
         sample_idx=0,
         sample_input="What is 2+2?",
@@ -55,6 +72,7 @@ def _request(candidate: str) -> JudgmentRequest:
 
 @pytest.mark.asyncio
 async def test_judge_returns_scripted_score() -> None:
+    """Verify judge returns scripted score."""
     judge = MockJudge(
         _spec(),
         scripts=[
@@ -84,6 +102,7 @@ async def test_judge_returns_scripted_score() -> None:
 
 @pytest.mark.asyncio
 async def test_judge_no_match_raises() -> None:
+    """Verify judge no match raises."""
     judge = MockJudge(_spec(), scripts=[])
     with pytest.raises(MockChatModelError):
         await judge.judge(_request("anything"))

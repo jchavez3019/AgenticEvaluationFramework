@@ -6,5 +6,6 @@ import importlib
 
 
 def test_aef_importable() -> None:
-    module = importlib.import_module("aef")
+    """Verify aef importable."""
+    module = importlib.import_module("backend")
     assert module.__version__ == "0.1.0"

@@ -1,7 +1,7 @@
 [project]
-name = "aef"
+name = "backend"
 version = "0.1.0"
-description = "Agentic Evaluation Framework — text-in, text-out evaluation harness for LLMs and agentic graphs."
+description = "Agentic Evaluation Framework — backend library and FastAPI API."
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
 license = { text = "Apache-2.0" }
@@ -21,8 +21,6 @@ dependencies = [
     "httpx>=0.27,<1",
     "python-multipart>=0.0.9,<1",
     "python-json-logger>=2.0,<3",
-    "hydra-core>=1.3,<2",
-    "hydra-zen>=0.13,<1",
     "jinja2>=3.1,<4",
     "websockets>=12,<14",
     "pyyaml>=6.0,<7",
@@ -71,17 +69,20 @@ dev = [
 ]
 
 [project.scripts]
-aef-eval = "aef.cli:main"
-aef-plot = "aef.cli.visualize:plot_main"
-aef-report = "aef.cli.visualize:report_main"
-aef-api = "aef.api.app:run"
+aef-api = "backend.api.app:run"
 
 [build-system]
 requires = ["hatchling>=1.25"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/aef"]
+packages = ["."]
+
+[tool.hatch.build.targets.wheel.force-exclude]
+tests = true
+
+[tool.hatch.build.targets.sdist]
+exclude = ["/tests"]
 
 [tool.uv]
 package = true
@@ -92,8 +93,8 @@ package = true
 [tool.ruff]
 line-length = 100
 target-version = "py313"
-src = ["src", "tests"]
-extend-exclude = ["src/aef/persistence/migrations/versions"]
+src = [".", "tests"]
+extend-exclude = ["persistence/migrations/versions"]
 
 [tool.ruff.lint]
 select = [
@@ -122,9 +123,9 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 # Tests may use `assert`, missing docstrings, magic numbers, and hard-coded
 # values for fixtures — that is the point of tests.
-"tests/**/*.py" = ["S101", "D", "ANN", "PLR2004"]
+"tests/**/*.py" = ["S101", "ANN", "PLR2004"]
 # Configuration / dunder modules don't need module docstrings.
-"src/aef/**/__init__.py" = ["D104"]
+"**/__init__.py" = ["D104"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"
@@ -138,14 +139,17 @@ docstring-code-format = true
 # Pyright — strict type checker (ADR-0010).
 # ---------------------------------------------------------------------------
 [tool.pyright]
-include = ["src", "tests"]
+include = ["."]
+extraPaths = [".."]
 exclude = [
     "**/__pycache__",
     "**/.venv",
-    "src/aef/persistence/migrations/versions",
+    "persistence/migrations/versions",
 ]
 typeCheckingMode = "strict"
 pythonVersion = "3.13"
+venvPath = ".."
+venv = ".venv"
 reportMissingTypeStubs = "error"
 reportImportCycles = "error"
 reportUnnecessaryTypeIgnoreComment = "error"
@@ -159,13 +163,15 @@ reportUnnecessaryContains = "error"
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]
+pythonpath = [".."]
 asyncio_mode = "auto"
 addopts = [
     "-ra",
     "--strict-markers",
     "--strict-config",
     "-m", "not gpu and not network and not broker and not docker",
-    "--cov=aef",
+    "--cov=backend",
+    "--cov-branch",
     "--cov-report=term-missing",
     "--cov-fail-under=85",
 ]
@@ -181,9 +187,10 @@ markers = [
 # ---------------------------------------------------------------------------
 [tool.coverage.run]
 branch = true
-source = ["aef"]
+parallel = false
+source = ["backend"]
 omit = [
-    "src/aef/persistence/migrations/*",
+    "persistence/migrations/*",
 ]
 
 [tool.coverage.report]

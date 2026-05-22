@@ -1,11 +1,11 @@
-"""Round-trip and validator tests for ``aef.contracts.primitives``."""
+"""Round-trip and validator tests for ``backend.contracts.primitives``."""
 
 from __future__ import annotations
 
 import pytest
 from pydantic import ValidationError
 
-from aef.contracts.primitives import (
+from backend.contracts.primitives import (
     BiasMitigation,
     ChatMessage,
     EngineConfig,
@@ -27,6 +27,11 @@ from aef.contracts.primitives import (
 
 
 def _make_rubric() -> Rubric:
+    """
+    Make rubric.
+
+    :return: A :class:`Rubric` instance.
+    """
     return Rubric(
         name="default_v1",
         version="1.0",
@@ -41,31 +46,37 @@ def _make_rubric() -> Rubric:
 
 
 def test_chat_message_round_trip() -> None:
+    """Verify chat message round trip."""
     msg = ChatMessage(role="user", content="hello", name="alice")
     assert ChatMessage.model_validate(msg.model_dump()) == msg
 
 
 def test_generation_config_validators_clamp_temperature_high() -> None:
+    """Verify generation config validators clamp temperature high."""
     with pytest.raises(ValidationError):
         GenerationConfig(temperature=2.5)
 
 
 def test_generation_config_validators_clamp_temperature_low() -> None:
+    """Verify generation config validators clamp temperature low."""
     with pytest.raises(ValidationError):
         GenerationConfig(temperature=-0.1)
 
 
 def test_generation_config_validators_top_k_must_be_positive() -> None:
+    """Verify generation config validators top k must be positive."""
     with pytest.raises(ValidationError):
         GenerationConfig(top_k=0)
 
 
 def test_generation_config_validators_top_p_open_lower_bound() -> None:
+    """Verify generation config validators top p open lower bound."""
     with pytest.raises(ValidationError):
         GenerationConfig(top_p=0.0)
 
 
 def test_generation_config_round_trip_with_all_fields() -> None:
+    """Verify generation config round trip with all fields."""
     cfg = GenerationConfig(
         temperature=0.7,
         top_k=40,
@@ -78,6 +89,7 @@ def test_generation_config_round_trip_with_all_fields() -> None:
 
 
 def test_generation_response_round_trip() -> None:
+    """Verify generation response round trip."""
     resp = GenerationResponse(
         text="hello world",
         finish_reason="stop",
@@ -88,11 +100,13 @@ def test_generation_response_round_trip() -> None:
 
 
 def test_generation_request_requires_messages() -> None:
+    """Verify generation request requires messages."""
     with pytest.raises(ValidationError):
         GenerationRequest(messages=[])
 
 
 def test_evaluation_sample_round_trip_with_rag_context() -> None:
+    """Verify evaluation sample round trip with rag context."""
     sample = EvaluationSample(
         idx=0,
         input="What is 2+2?",
@@ -108,6 +122,7 @@ def test_evaluation_sample_round_trip_with_rag_context() -> None:
 
 
 def test_rubric_weighted_mean_requires_weights() -> None:
+    """Verify rubric weighted mean requires weights."""
     with pytest.raises(ValidationError):
         Rubric(
             name="bad",
@@ -121,6 +136,7 @@ def test_rubric_weighted_mean_requires_weights() -> None:
 
 
 def test_rubric_weighted_mean_requires_matching_weight_count() -> None:
+    """Verify rubric weighted mean requires matching weight count."""
     with pytest.raises(ValidationError):
         Rubric(
             name="bad",
@@ -135,6 +151,7 @@ def test_rubric_weighted_mean_requires_matching_weight_count() -> None:
 
 
 def test_rubric_weighted_mean_with_matching_weights() -> None:
+    """Verify rubric weighted mean with matching weights."""
     rubric = Rubric(
         name="ok",
         version="1.0",
@@ -149,6 +166,7 @@ def test_rubric_weighted_mean_with_matching_weights() -> None:
 
 
 def test_bias_mitigation_defaults_are_all_on() -> None:
+    """Verify bias mitigation defaults are all on."""
     bm = BiasMitigation()
     assert bm.position_swap is True
     assert bm.length_anchor is True
@@ -160,6 +178,7 @@ def test_bias_mitigation_defaults_are_all_on() -> None:
 
 
 def test_pairwise_preference_round_trip() -> None:
+    """Verify pairwise preference round trip."""
     score = RubricScore(
         rubric_name="default_v1",
         rubric_version="1.0",
@@ -171,6 +190,7 @@ def test_pairwise_preference_round_trip() -> None:
 
 
 def test_judgment_request_response_round_trip() -> None:
+    """Verify judgment request response round trip."""
     rubric = _make_rubric()
     req = JudgmentRequest(
         sample_idx=0,
@@ -192,6 +212,7 @@ def test_judgment_request_response_round_trip() -> None:
 
 
 def test_engine_config_defaults_are_local() -> None:
+    """Verify engine config defaults are local."""
     cfg = EngineConfig()
     assert cfg.kind == "local"
     assert cfg.queues["generation"].pool_size == 1
@@ -199,6 +220,7 @@ def test_engine_config_defaults_are_local() -> None:
 
 
 def test_output_config_defaults() -> None:
+    """Verify output config defaults."""
     out = OutputConfig()
     assert out.base_dir == "outputs"
     assert out.write_result_json is True

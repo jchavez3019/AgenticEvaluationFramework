@@ -88,15 +88,21 @@ The backend Python package is the **single source of truth**. Both the CLI and t
 
 ### 2.2 Top-level repository layout
 
-`backend/` and `frontend/` are siblings at the repo root. `configs/`, `outputs/`, and developer-tooling files are also root-level peers. This is the binding layout for v1 (see [ADR-0002](adr/0002-backend-technology-stack.md), [ADR-0007](adr/0007-cli-configuration-with-hydra-and-hydra-zen.md), [ADR-0009](adr/0009-frontend-docker-dev-environment.md), [ADR-0010](adr/0010-code-quality-standards.md)):
+`backend/`, `cli/`, and `frontend/` are siblings at the repo root. A uv workspace `pyproject.toml` and `uv.lock` live at the root; `configs/`, `outputs/`, and developer-tooling files are also root-level peers. This is the binding layout for v1 (see [ADR-0002](adr/0002-backend-technology-stack.md), [ADR-0007](adr/0007-cli-configuration-with-hydra-and-hydra-zen.md), [ADR-0009](adr/0009-frontend-docker-dev-environment.md), [ADR-0010](adr/0010-code-quality-standards.md)):
 
 ```
 <repo root>/
-  backend/                          # Python backend + CLI
-    pyproject.toml                  # uv-managed; single source of truth for Python deps
-    uv.lock
-    src/aef/                        # package; structure detailed in §3.1
-    tests/                          # unit / integration / smoke (per ADR-0011)
+  pyproject.toml                    # workspace root (AgenticEvaluationFramework)
+  uv.lock
+  backend/                          # Python library + FastAPI (import: backend)
+    pyproject.toml
+    contracts/  api/  engine/  …    # flat package; see §3.1
+    tests/
+    README.md
+  cli/                              # Hydra CLI (import: cli; depends on backend)
+    pyproject.toml
+    entrypoint.py  config.py  …
+    tests/
     README.md
   frontend/                         # Angular dashboard (dev-container only; per ADR-0009)
     Dockerfile
@@ -119,7 +125,7 @@ The backend Python package is the **single source of truth**. Both the CLI and t
   .aef/                             # local SQLite + caches (gitignored; ADR-0006)
 ```
 
-The CLI resolves `configs/` via a workspace-root anchor (Hydra's `config_path` relative to the script entry point in `aef.cli`), so commands run from anywhere inside the repo still find the same composition.
+The CLI resolves `configs/` via a workspace-root anchor (relative to the repo root from `cli`), so commands run from anywhere inside the repo still find the same composition.
 
 ---
 
@@ -129,11 +135,9 @@ The CLI resolves `configs/` via a workspace-root anchor (Hydra's `config_path` r
 
 ```
 backend/
-  src/
-    aef/                          # package name: agentic_evaluation_framework
-      __init__.py
-      config/                     # pydantic-based settings, env loading
-      contracts/                  # ALL Pydantic models (no nested dicts allowed)
+  __init__.py
+  config/                       # pydantic-based settings, env loading
+  contracts/                    # ALL Pydantic models (no nested dicts allowed)
         run.py
         sample.py
         metric_result.py
@@ -182,7 +186,6 @@ backend/
         logging.py                # logger factory used everywhere
         timing.py                 # timed() ctx manager + decorator
         telemetry.py              # latency/throughput counters
-      utils/
   tests/
     unit/
     integration/
@@ -222,7 +225,7 @@ Maximum context window is treated as a **capability** on the model (`capabilitie
 
 ### 3.4 Logging & Telemetry
 
-- Every module imports a named logger via `aef.observability.logging.get_logger(__name__)`. Central configuration controls formatting and handlers, while `__name__` preserves the originating module in each log record. There is no `print()`.
+- Every module imports a named logger via `backend.observability.logging.get_logger(__name__)`. Central configuration controls formatting and handlers, while `__name__` preserves the originating module in each log record. There is no `print()`.
 - A `@timed("phase_name")` decorator and a `with timed("phase_name"):` context manager record latencies into the run's telemetry block, which is part of `EvaluationRunResult`.
 - Latencies are tracked at four granularities: per-sample-generation, per-sample-metric, per-stage (generation, scoring), per-run.
 - Hydra owns log directory layout for the CLI (`outputs/cli/<date>/<time>-<run_id>/`); the API server reuses the same logger handler set, writes a rotating server log under `outputs/frontend/server.log`, and attaches per-run handlers under `outputs/frontend/<date>/<time>-<run_id>/run.log`. See [ADR-0012](adr/0012-logging-and-telemetry-contract.md) for the full handler layout.
@@ -231,7 +234,7 @@ Maximum context window is treated as a **capability** on the model (`capabilitie
 
 ## 4. CLI
 
-- Entry point: `aef-eval` (and `python -m aef.cli`).
+- Entry point: `python -m cli.entrypoint` (console script `aef-eval`).
 - The CLI imports the backend as a library; it does not call the HTTP API. This keeps headless runs and Docker-less local use trivial.
 - **Hydra** is the only configuration mechanism. YAML files live in `configs/` and are composed into typed Pydantic objects via `hydra-zen` or `hydra` + a small `dataclass → BaseModel` shim.
 - Output tree per run, partitioned by entry point so concurrent CLI / dashboard runs cannot collide on the same second:

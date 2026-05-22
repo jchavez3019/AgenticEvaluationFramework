@@ -45,8 +45,11 @@ backend/
       observability/                 # logging, timing, contextvars
       persistence/                   # SQLAlchemy ORM + repository tests against in-memory SQLite
     integration/                     # multi-component, still mock-driven by default
-      cli/
       api/
+cli/
+  tests/
+    unit/
+    integration/
       engine_local/
       engine_distributed/            # gated behind @pytest.mark.broker
     smoke/                           # end-to-end, real-model, gated

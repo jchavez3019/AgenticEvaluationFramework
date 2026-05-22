@@ -1,16 +1,16 @@
-"""Round-trip tests for ``aef.contracts.persistence``."""
+"""Round-trip tests for ``backend.contracts.persistence``."""
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from aef.contracts.adapter_spec import (
+from backend.contracts.adapter_spec import (
     DatasetAdapterSpec,
     ModelAdapterSpec,
     ModelCapabilities,
 )
-from aef.contracts.metric_result import MetricKind, MetricSpec, MetricStatus, SubScore
-from aef.contracts.persistence import (
+from backend.contracts.metric_result import MetricKind, MetricSpec, MetricStatus, SubScore
+from backend.contracts.persistence import (
     DatasetMetadataRecord,
     MetricResultRecord,
     ModelMetadataRecord,
@@ -24,6 +24,11 @@ from aef.contracts.persistence import (
 
 
 def _make_model_spec() -> ModelAdapterSpec:
+    """
+    Make model spec.
+
+    :return: A :class:`ModelAdapterSpec` instance.
+    """
     return ModelAdapterSpec(
         name="mock-chat",
         model_id="mock-1",
@@ -32,6 +37,7 @@ def _make_model_spec() -> ModelAdapterSpec:
 
 
 def test_run_record_round_trip() -> None:
+    """Verify run record round trip."""
     record = RunRecord(
         id="run-1",
         title="smoke",
@@ -49,6 +55,7 @@ def test_run_record_round_trip() -> None:
 
 
 def test_sample_record_round_trip() -> None:
+    """Verify sample record round trip."""
     record = SampleRecord(
         run_id="run-1",
         idx=0,
@@ -61,6 +68,7 @@ def test_sample_record_round_trip() -> None:
 
 
 def test_metric_result_record_round_trip_with_sub_values() -> None:
+    """Verify metric result record round trip with sub values."""
     record = MetricResultRecord(
         run_id="run-1",
         sample_idx=0,
@@ -74,6 +82,7 @@ def test_metric_result_record_round_trip_with_sub_values() -> None:
 
 
 def test_run_summary_round_trip() -> None:
+    """Verify run summary round trip."""
     summary = RunSummary(
         run_id="run-1",
         sample_count=10,
@@ -86,12 +95,14 @@ def test_run_summary_round_trip() -> None:
 
 
 def test_run_query_defaults() -> None:
+    """Verify run query defaults."""
     query = RunQuery()
     assert query.page == 1
     assert query.limit == 25
 
 
 def test_run_list_page_round_trip() -> None:
+    """Verify run list page round trip."""
     record = RunRecord(
         id="run-1",
         created_at=datetime(2026, 1, 1, tzinfo=UTC),
@@ -105,6 +116,7 @@ def test_run_list_page_round_trip() -> None:
 
 
 def test_model_metadata_record_round_trip() -> None:
+    """Verify model metadata record round trip."""
     meta = ModelMetadataRecord(
         id="huggingface:smollm",
         name="smollm",
@@ -119,6 +131,7 @@ def test_model_metadata_record_round_trip() -> None:
 
 
 def test_dataset_metadata_record_round_trip() -> None:
+    """Verify dataset metadata record round trip."""
     meta = DatasetMetadataRecord(
         id="mock:mock-ds",
         name="mock-ds",

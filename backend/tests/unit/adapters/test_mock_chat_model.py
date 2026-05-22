@@ -7,8 +7,8 @@ import time
 
 import pytest
 
-from aef.adapters.capabilities import UnsupportedSamplingParameterError
-from aef.adapters.models.mocks import (
+from backend.adapters.capabilities import UnsupportedSamplingParameterError
+from backend.adapters.models.mocks import (
     MatchAny,
     MatchExactPrefix,
     MatchRegex,
@@ -16,8 +16,8 @@ from aef.adapters.models.mocks import (
     MockChatModelError,
     MockChatScript,
 )
-from aef.contracts.adapter_spec import ModelAdapterSpec, ModelCapabilities
-from aef.contracts.primitives import (
+from backend.contracts.adapter_spec import ModelAdapterSpec, ModelCapabilities
+from backend.contracts.primitives import (
     ChatMessage,
     GenerationConfig,
     GenerationRequest,
@@ -29,6 +29,13 @@ def _spec(
     *,
     capabilities: ModelCapabilities | None = None,
 ) -> ModelAdapterSpec:
+    """
+    Spec.
+
+    :param capabilities: The capabilities.
+
+    :return: A :class:`ModelAdapterSpec` instance.
+    """
     return ModelAdapterSpec(
         name="mock-chat",
         model_id="mock-chat-id",
@@ -37,11 +44,19 @@ def _spec(
 
 
 def _request(content: str) -> GenerationRequest:
+    """
+    Request.
+
+    :param content: The content.
+
+    :return: A :class:`GenerationRequest` instance.
+    """
     return GenerationRequest(messages=[ChatMessage(role="user", content=content)])
 
 
 @pytest.mark.asyncio
 async def test_first_matching_script_wins() -> None:
+    """Verify first matching script wins."""
     model = MockChatModel(
         _spec(),
         scripts=[
@@ -64,6 +79,7 @@ async def test_first_matching_script_wins() -> None:
 
 @pytest.mark.asyncio
 async def test_regex_match_works() -> None:
+    """Verify regex match works."""
     model = MockChatModel(
         _spec(),
         scripts=[
@@ -81,6 +97,7 @@ async def test_regex_match_works() -> None:
 
 @pytest.mark.asyncio
 async def test_no_match_raises_mock_chat_model_error() -> None:
+    """Verify no match raises mock chat model error."""
     model = MockChatModel(
         _spec(),
         scripts=[
@@ -97,6 +114,7 @@ async def test_no_match_raises_mock_chat_model_error() -> None:
 
 @pytest.mark.asyncio
 async def test_unsupported_sampling_parameter_raises() -> None:
+    """Verify unsupported sampling parameter raises."""
     capabilities = ModelCapabilities(
         family="mock",
         supported_sampling_parameters=frozenset({"temperature"}),
@@ -117,6 +135,7 @@ async def test_unsupported_sampling_parameter_raises() -> None:
 
 @pytest.mark.asyncio
 async def test_fail_with_raises_chosen_class() -> None:
+    """Verify fail with raises chosen class."""
     model = MockChatModel(
         _spec(),
         scripts=[
@@ -134,6 +153,7 @@ async def test_fail_with_raises_chosen_class() -> None:
 
 @pytest.mark.asyncio
 async def test_latency_is_returned_on_response() -> None:
+    """Verify latency is returned on response."""
     model = MockChatModel(
         _spec(),
         scripts=[
@@ -155,6 +175,7 @@ async def test_latency_is_returned_on_response() -> None:
 
 @pytest.mark.asyncio
 async def test_sleep_for_latency_actually_sleeps() -> None:
+    """Verify sleep for latency actually sleeps."""
     model = MockChatModel(
         _spec(),
         scripts=[
@@ -172,6 +193,7 @@ async def test_sleep_for_latency_actually_sleeps() -> None:
 
 @pytest.mark.asyncio
 async def test_close_is_idempotent() -> None:
+    """Verify close is idempotent."""
     model = MockChatModel(_spec(), scripts=[])
     await model.close()
     await model.close()
@@ -179,6 +201,7 @@ async def test_close_is_idempotent() -> None:
 
 @pytest.mark.asyncio
 async def test_concurrent_generate_is_safe() -> None:
+    """Verify concurrent generate is safe."""
     model = MockChatModel(
         _spec(),
         scripts=[MockChatScript(match=MatchAny(), response="ok")],

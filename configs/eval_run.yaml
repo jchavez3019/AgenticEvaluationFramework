@@ -1,44 +1,28 @@
-# Top-level evaluation run configuration consumed by ``aef-eval``.
+# Default evaluation run composition for ``python -m cli.entrypoint``.
 #
-# This is the walking-skeleton default config — runs entirely against
-# the in-tree mock adapters so a clean checkout can smoke-test the
-# whole stack with one command:
+# From the repository root:
 #
-#     aef-eval --config configs/eval_run.yaml
-#
-# Override individual fields from the CLI, e.g.:
-#
-#     aef-eval --config configs/eval_run.yaml -O sampling.temperature=0.7
+#     uv run --project cli python -m cli.entrypoint
+#     uv run --project cli python -m cli.entrypoint sampling=greedy
+#     uv run --project cli python -m cli.entrypoint sampling.temperature=0.7
+#     uv run --project cli python -m cli.entrypoint --multirun seed=0,1,2
 #
 # ADR: CLI Configuration with Hydra and hydra-zen
 # See: adr/0007-cli-configuration-with-hydra-and-hydra-zen.md
 
-run_id: PLACEHOLDER # generated automatically when "PLACEHOLDER".
+defaults:
+  - model: mock
+  - dataset: mock
+  - metrics: default
+  - engine: local
+  - sampling: default
+  - output: default
+  - _self_
+
+run_id: PLACEHOLDER # replaced with a generated id when still PLACEHOLDER
 title: walking-skeleton mock run
 seed: 0
 
-model:
-  name: mock-chat
-  model_id: mock-chat
-
-dataset:
-  name: mock
-  dataset_id: mock
-
-metrics:
-  - name: exact_match
-    kind: lexical
-  - name: token_f1
-    kind: lexical
-  - name: latency
-    kind: operational
-
-sampling: {}
-
-engine:
-  kind: local
-
-output:
-  base_dir: outputs
-  write_result_json: true
-  write_metrics_csv: true
+hydra:
+  job:
+    chdir: false

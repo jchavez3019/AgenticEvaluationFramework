@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from aef.engine.base import (
+from backend.engine.base import (
     ProgressEvent,
     RunFinalized,
     SampleCompleted,
@@ -16,10 +16,16 @@ from aef.engine.base import (
 
 
 def _now() -> datetime:
+    """
+    Return the current UTC timestamp.
+
+    :return: A :class:`datetime` instance.
+    """
     return datetime(2026, 5, 17, tzinfo=UTC)
 
 
 def test_each_event_has_a_distinct_kind_tag() -> None:
+    """Verify each event has a distinct kind tag."""
     events: list[ProgressEvent] = [
         StageStarted(run_id="r", emitted_at=_now(), stage="generation"),
         StageCompleted(
@@ -56,11 +62,13 @@ def test_each_event_has_a_distinct_kind_tag() -> None:
 
 
 def test_events_are_immutable() -> None:
+    """Verify events are immutable."""
     event = StageStarted(run_id="r", emitted_at=_now(), stage="generation")
     assert event.model_config.get("frozen") is True
 
 
 def test_run_finalized_constrains_status() -> None:
+    """Verify run finalized constrains status."""
     RunFinalized(run_id="r", emitted_at=_now(), status="succeeded")
     RunFinalized(run_id="r", emitted_at=_now(), status="partial")
     RunFinalized(run_id="r", emitted_at=_now(), status="failed")

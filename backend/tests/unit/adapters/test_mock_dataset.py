@@ -4,17 +4,23 @@ from __future__ import annotations
 
 import pytest
 
-from aef.adapters.datasets.mocks import MockDatasetAdapter
-from aef.contracts.adapter_spec import DatasetAdapterSpec
-from aef.contracts.primitives import EvaluationSample
+from backend.adapters.datasets.mocks import MockDatasetAdapter
+from backend.contracts.adapter_spec import DatasetAdapterSpec
+from backend.contracts.primitives import EvaluationSample
 
 
 def _spec() -> DatasetAdapterSpec:
+    """
+    Spec.
+
+    :return: A :class:`DatasetAdapterSpec` instance.
+    """
     return DatasetAdapterSpec(name="mock", dataset_id="mock-id")
 
 
 @pytest.mark.asyncio
 async def test_default_dataset_yields_seeded_rows() -> None:
+    """Verify default dataset yields seeded rows."""
     async with MockDatasetAdapter(_spec()) as ds:
         rows = [row async for row in ds.load()]
 
@@ -27,6 +33,7 @@ async def test_default_dataset_yields_seeded_rows() -> None:
 
 @pytest.mark.asyncio
 async def test_explicit_rows_round_trip() -> None:
+    """Verify explicit rows round trip."""
     rows = [
         EvaluationSample(idx=0, input="hi", reference="hello"),
         EvaluationSample(idx=1, input="bye", reference="goodbye"),
@@ -40,6 +47,7 @@ async def test_explicit_rows_round_trip() -> None:
 
 @pytest.mark.asyncio
 async def test_dataset_run_is_repeatable() -> None:
+    """Verify dataset run is repeatable."""
     adapter = MockDatasetAdapter(_spec())
     async with adapter:
         first = [row async for row in adapter.load()]

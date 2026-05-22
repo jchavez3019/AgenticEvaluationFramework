@@ -1,0 +1,11 @@
+"""Dataset adapters — Protocols + shipped concrete implementations.
+
+# ADR: Adapter Architecture for Models and Datasets
+# See: adr/0003-adapter-architecture-for-models-and-datasets.md
+"""
+
+from __future__ import annotations
+
+from backend.adapters.datasets.base import DatasetAdapter
+
+__all__ = ["DatasetAdapter"]

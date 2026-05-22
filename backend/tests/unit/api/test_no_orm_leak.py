@@ -16,10 +16,11 @@ from fastapi.routing import APIRoute
 from pydantic import BaseModel
 from sqlalchemy.orm import DeclarativeBase
 
-from aef.api.app import create_app
+from backend.api.app import create_app
 
 
 def test_no_orm_leak_through_response_models() -> None:
+    """Verify no orm leak through response models."""
     app = create_app()
     offenders: list[str] = []
     for route in app.routes:
@@ -32,11 +33,18 @@ def test_no_orm_leak_through_response_models() -> None:
             if inspect.isclass(cls) and issubclass(cls, DeclarativeBase):
                 offenders.append(f"{route.path} -> {cls}")
             if inspect.isclass(cls) and not (issubclass(cls, BaseModel) or cls is type(None)):
-                if cls.__module__.startswith("aef.persistence.orm"):
+                if cls.__module__.startswith("backend.persistence.orm"):
                     offenders.append(f"{route.path} -> ORM class {cls}")
     assert not offenders, "\n".join(offenders)
 
 
 def _candidate_classes(candidate: object) -> list[object]:
+    """
+    Candidate classes.
+
+    :param candidate: The candidate.
+
+    :return: A :class:`list[object]` instance.
+    """
     args = list(typing.get_args(candidate))
     return args or [candidate]

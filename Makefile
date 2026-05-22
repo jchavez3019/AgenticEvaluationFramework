@@ -1,31 +1,50 @@
-# Top-level Makefile for the Agentic Evaluation Framework.
-#
-# `make check` runs the full local quality gate (lint + types + tests).
-# Sub-targets exist so CI and IDE save hooks can call individual phases.
+# Top-level Makefile for the Agentic Evaluation Framework (uv workspace).
 
-.PHONY: check check-backend lint format type test pre-commit frontend frontend-clean
+.PHONY: check check-backend check-cli docstrings sync lint format type test pre-commit frontend frontend-clean
 
-check: check-backend ## run all backend checks
+sync:
+	uv sync --all-packages --all-extras --dev
 
-check-backend: lint format type test ## ruff + pyright + pytest in backend/
+docstrings:
+	uv run python scripts/check_rest_docstrings.py
 
-lint:
-	cd backend && uv run ruff check src tests
+check: check-backend check-cli docstrings
 
-format:
-	cd backend && uv run ruff format --check src tests
+check-backend: lint-backend format-backend type-backend test-backend
 
-type:
-	cd backend && uv run pyright src
+check-cli: lint-cli format-cli type-cli test-cli
 
-test:
+lint-backend:
+	cd backend && uv run ruff check . tests
+
+format-backend:
+	cd backend && uv run ruff format --check . tests
+
+type-backend:
+	cd backend && uv run pyright
+
+test-backend:
+	rm -f backend/.coverage backend/.coverage.*
 	cd backend && uv run pytest
 
+lint-cli:
+	cd cli && uv run ruff check . tests
+
+format-cli:
+	cd cli && uv run ruff format --check . tests
+
+type-cli:
+	cd cli && uv run pyright
+
+test-cli:
+	rm -f cli/.coverage cli/.coverage.*
+	cd cli && uv run pytest
+
 pre-commit:
-	uv run pre-commit run --all-files
+	uv tool run pre-commit run --all-files
 
-frontend: ## placeholder; populated in a future plan
-	@echo "frontend target is reserved; the Angular app lives in frontend/ once ADR-0008/0009 ship"
+frontend:
+	@echo "frontend target is reserved; see ADR-0009"
 
-frontend-clean: ## placeholder; populated in a future plan
-	@echo "frontend-clean target is reserved; populated alongside the frontend Docker setup (ADR-0009)"
+frontend-clean:
+	@echo "frontend-clean target is reserved; see ADR-0009"

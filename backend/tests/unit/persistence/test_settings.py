@@ -4,15 +4,17 @@ from __future__ import annotations
 
 import pytest
 
-from aef.config import Settings, get_settings, reset_settings
+from backend.config import Settings, get_settings, reset_settings
 
 
 @pytest.fixture(autouse=True)
 def reset_settings_cache() -> None:
+    """Reset settings cache."""
     reset_settings()
 
 
 def test_default_database_url() -> None:
+    """Verify default database url."""
     settings = Settings()
     assert "sqlite+aiosqlite" in settings.database_url
     assert settings.database_auto_upgrade is True
@@ -22,6 +24,11 @@ def test_default_database_url() -> None:
 def test_environment_overrides_defaults(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """
+    Verify environment overrides defaults.
+
+    :param monkeypatch: The monkeypatch.
+    """
     monkeypatch.setenv("AEF_DATABASE_URL", "sqlite+aiosqlite:///:memory:")
     monkeypatch.setenv("AEF_DATABASE_AUTO_UPGRADE", "false")
     settings = Settings()
@@ -32,6 +39,11 @@ def test_environment_overrides_defaults(
 def test_get_settings_is_cached(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """
+    Verify get settings is cached.
+
+    :param monkeypatch: The monkeypatch.
+    """
     monkeypatch.setenv("AEF_DATABASE_URL", "sqlite+aiosqlite:///:memory:")
     first = get_settings()
     monkeypatch.setenv("AEF_DATABASE_URL", "sqlite+aiosqlite:///./other.sqlite3")

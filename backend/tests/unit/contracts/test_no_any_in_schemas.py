@@ -1,7 +1,7 @@
-"""Walk every Pydantic model in :mod:`aef.contracts` for ``Any`` leaks.
+"""Walk every Pydantic model in :mod:`backend.contracts` for ``Any`` leaks.
 
 ADR-0010 forbids ``Dict[str, Any]`` (and bare ``Any``) on public surfaces.
-This test enumerates every model exported from :mod:`aef.contracts`,
+This test enumerates every model exported from :mod:`backend.contracts`,
 walks its JSON schema, and fails if any field's type is ``Any`` or
 permits arbitrary additional properties via ``additionalProperties: True``.
 
@@ -16,10 +16,15 @@ from typing import Any, cast
 
 from pydantic import BaseModel
 
-import aef.contracts as contracts
+import backend.contracts as contracts
 
 
 def _iter_contract_models() -> list[type[BaseModel]]:
+    """
+    Iterate public contract Pydantic model types.
+
+    :return: All exported :class:`~pydantic.BaseModel` subclasses.
+    """
     out: list[type[BaseModel]] = []
     for name in contracts.__all__:
         obj = getattr(contracts, name, None)
@@ -29,6 +34,13 @@ def _iter_contract_models() -> list[type[BaseModel]]:
 
 
 def _walk_schema(node: object, path: str, violations: list[str]) -> None:
+    """
+    Walk schema.
+
+    :param node: The node.
+    :param path: Filesystem path to the artifact.
+    :param violations: The violations.
+    """
     if not isinstance(node, dict):
         return
     schema: dict[str, Any] = node  # type: ignore[assignment]
@@ -71,6 +83,7 @@ def _walk_schema(node: object, path: str, violations: list[str]) -> None:
 
 
 def test_no_any_in_public_contract_schemas() -> None:
+    """Verify no any in public contract schemas."""
     violations: list[str] = []
     for model in _iter_contract_models():
         schema: dict[str, Any] = model.model_json_schema()
@@ -82,11 +95,14 @@ def test_no_any_in_public_contract_schemas() -> None:
 
 
 def test_every_contract_model_forbids_extra_fields() -> None:
-    """Every public model uses ``extra='forbid'``.
+    """
+    Every public model uses ``extra='forbid'``.
 
-    This protects against silent payload drift (a client adding a field
-    that older code happily ignores) and matches the strict-typing
-    posture of ADR-0010.
+    This protects against silent payload drift (a client adding a field that older code
+    happily ignores) and matches the strict-typing posture of ADR-0010.
+
+
+    :return: :class:`None` instance.
     """
     violations: list[str] = []
     for model in _iter_contract_models():

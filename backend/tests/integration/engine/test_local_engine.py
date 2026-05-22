@@ -6,46 +6,66 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from aef.adapters.models.mocks import MatchAny, MockChatModel, MockChatScript
-from aef.adapters.registry import (
+from backend.adapters.models.mocks import MatchAny, MockChatModel, MockChatScript
+from backend.adapters.registry import (
     register_model_adapter,
     unregister_model_adapter,
 )
-from aef.contracts.adapter_spec import (
+from backend.contracts.adapter_spec import (
     DatasetAdapterSpec,
     ModelAdapterSpec,
     ModelCapabilities,
 )
-from aef.contracts.metric_result import MetricKind, MetricSpec
-from aef.contracts.primitives import GenerationConfig
-from aef.contracts.run import EvaluationRunRequest
-from aef.engine.base import (
+from backend.contracts.metric_result import MetricKind, MetricSpec
+from backend.contracts.primitives import GenerationConfig
+from backend.contracts.run import EvaluationRunRequest
+from backend.engine.base import (
     ProgressEvent,
     RunFinalized,
     SampleCompleted,
     StageStarted,
 )
-from aef.engine.local import LocalEngine
+from backend.engine.local import LocalEngine
 
 if TYPE_CHECKING:
-    from aef.persistence import SQLiteStorage
+    from backend.persistence import SQLiteStorage
 
 pytestmark = pytest.mark.asyncio
 
 
 class _CapturingProgress:
+    """Collect :class:`ProgressEvent` instances emitted during a run."""
+
     def __init__(self) -> None:
+        """Initialize an empty event list."""
         self.events: list[ProgressEvent] = []
 
     async def emit(self, event: ProgressEvent) -> None:
+        """
+        Emit.
+
+        :param event: Progress event to forward.
+
+        :return: The None result.
+        """
         self.events.append(event)
 
 
 @pytest.fixture
 def scripted_mock_chat() -> object:
-    """Register a per-test mock-chat factory that returns the input verbatim."""
+    """
+    Register a per-test mock-chat factory that returns the input verbatim.
+
+    :return: ``object`` result.
+    """
 
     def factory(spec: ModelAdapterSpec) -> MockChatModel:
+        """Build a :class:`MockChatModel` for registry override tests.
+
+        :param spec: Adapter or metric specification.
+
+        :return: Configured mock chat model instance.
+        """
         return MockChatModel(
             spec,
             scripts=[MockChatScript(match=MatchAny(), response="echo")],
@@ -56,12 +76,19 @@ def scripted_mock_chat() -> object:
     register_model_adapter("mock-chat", factory)
     yield
     unregister_model_adapter("mock-chat")
-    from aef.adapters.models.mocks import register_default_mocks
+    from backend.adapters.models.mocks import register_default_mocks
 
     register_default_mocks()
 
 
 def _request(run_id: str = "run-local-1") -> EvaluationRunRequest:
+    """
+    Request.
+
+    :param run_id: Unique run identifier.
+
+    :return: A :class:`EvaluationRunRequest` instance.
+    """
     return EvaluationRunRequest(
         run_id=run_id,
         model=ModelAdapterSpec(
@@ -82,6 +109,12 @@ async def test_local_engine_completes_with_expected_progress(
     in_memory_storage: SQLiteStorage,
     scripted_mock_chat: object,
 ) -> None:
+    """
+    Verify local engine completes with expected progress.
+
+    :param in_memory_storage: The in memory storage.
+    :param scripted_mock_chat: The scripted mock chat.
+    """
     engine = LocalEngine()
     progress = _CapturingProgress()
 
@@ -99,6 +132,12 @@ async def test_local_engine_persists_metric_results(
     in_memory_storage: SQLiteStorage,
     scripted_mock_chat: object,
 ) -> None:
+    """
+    Verify local engine persists metric results.
+
+    :param in_memory_storage: The in memory storage.
+    :param scripted_mock_chat: The scripted mock chat.
+    """
     engine = LocalEngine()
     result = await engine.run(_request("run-local-2"), in_memory_storage)
     await engine.close()
@@ -112,7 +151,13 @@ async def test_local_engine_persists_metric_results(
 async def test_local_engine_marks_run_partial_on_sample_failure(
     in_memory_storage: SQLiteStorage,
 ) -> None:
-    """A failing model on every script becomes a ``failed`` (no successes) run."""
+    """
+    A failing model on every script becomes a ``failed`` (no successes) run.
+
+    :param in_memory_storage: In-memory SQLite storage fixture.
+
+    :return: :class:`None` instance.
+    """
     failing = MockChatScript(
         match=MatchAny(),
         response="ignored",
@@ -120,6 +165,12 @@ async def test_local_engine_marks_run_partial_on_sample_failure(
     )
 
     def factory(spec: ModelAdapterSpec) -> MockChatModel:
+        """Build a :class:`MockChatModel` for registry override tests.
+
+        :param spec: Adapter or metric specification.
+
+        :return: Configured mock chat model instance.
+        """
         return MockChatModel(spec, scripts=[failing], sleep_for_latency=False)
 
     unregister_model_adapter("mock-chat")
@@ -131,7 +182,7 @@ async def test_local_engine_marks_run_partial_on_sample_failure(
         assert result.status == "partial"
     finally:
         unregister_model_adapter("mock-chat")
-        from aef.adapters.models.mocks import register_default_mocks
+        from backend.adapters.models.mocks import register_default_mocks
 
         register_default_mocks()
 
@@ -140,6 +191,12 @@ async def test_cancel_marks_run_cancelled_when_no_samples_succeed(
     in_memory_storage: SQLiteStorage,
     scripted_mock_chat: object,
 ) -> None:
+    """
+    Verify cancel marks run cancelled when no samples succeed.
+
+    :param in_memory_storage: The in memory storage.
+    :param scripted_mock_chat: The scripted mock chat.
+    """
     engine = LocalEngine()
     await engine.cancel("run-local-4")
     result = await engine.run(_request("run-local-4"), in_memory_storage)

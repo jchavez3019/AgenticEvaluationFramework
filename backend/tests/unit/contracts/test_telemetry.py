@@ -1,10 +1,10 @@
-"""Round-trip and validator tests for ``aef.contracts.telemetry``."""
+"""Round-trip and validator tests for ``backend.contracts.telemetry``."""
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from aef.contracts.telemetry import (
+from backend.contracts.telemetry import (
     QueueDepthSample,
     StageSummary,
     TelemetryReport,
@@ -14,6 +14,7 @@ from aef.contracts.telemetry import (
 
 
 def test_timing_record_round_trip() -> None:
+    """Verify timing record round trip."""
     rec = TimingRecord(
         phase="metric.bleu",
         duration_ms=12.5,
@@ -24,6 +25,7 @@ def test_timing_record_round_trip() -> None:
 
 
 def test_timing_record_carries_exception_class() -> None:
+    """Verify timing record carries exception class."""
     rec = TimingRecord(
         phase="generation",
         duration_ms=42.0,
@@ -35,6 +37,7 @@ def test_timing_record_carries_exception_class() -> None:
 
 
 def test_stage_summary_round_trip() -> None:
+    """Verify stage summary round trip."""
     summary = StageSummary(
         stage="generation",
         total_ms=100.0,
@@ -48,6 +51,7 @@ def test_stage_summary_round_trip() -> None:
 
 
 def test_queue_depth_sample_round_trip() -> None:
+    """Verify queue depth sample round trip."""
     sample = QueueDepthSample(
         queue_name="generation",
         depth=4,
@@ -57,6 +61,7 @@ def test_queue_depth_sample_round_trip() -> None:
 
 
 def test_telemetry_report_round_trip() -> None:
+    """Verify telemetry report round trip."""
     started = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)
     finished = datetime(2026, 1, 1, 12, 0, 1, tzinfo=UTC)
     report = TelemetryReport(

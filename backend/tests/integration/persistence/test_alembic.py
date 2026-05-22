@@ -9,14 +9,21 @@ from pathlib import Path
 
 import pytest
 
-from aef.persistence import SQLiteStorage
+from backend.persistence import SQLiteStorage
 
 
 @pytest.mark.asyncio
 async def test_alembic_upgrade_head_against_temp_sqlite(tmp_path: Path) -> None:
-    """``alembic upgrade head`` must succeed against a fresh SQLite file."""
+    """
+    ``alembic upgrade head`` must succeed against a fresh SQLite file.
+
+    :param tmp_path: Pytest temporary directory path.
+
+    :return: :class:`None` instance.
+    """
     db_path = tmp_path / "alembic-test.sqlite3"
-    backend_root = Path(__file__).resolve().parents[3]
+    repo_root = Path(__file__).resolve().parents[4]
+    backend_root = repo_root / "backend"
 
     env = os.environ.copy()
     env["AEF_DATABASE_URL"] = f"sqlite+aiosqlite:///{db_path}"
@@ -24,7 +31,7 @@ async def test_alembic_upgrade_head_against_temp_sqlite(tmp_path: Path) -> None:
     uv_path = shutil.which("uv")
     assert uv_path is not None, "uv must be on PATH for the migration test"
     result = subprocess.run(  # noqa: S603 — args are a fixed allowlist.
-        [uv_path, "run", "alembic", "upgrade", "head"],
+        [uv_path, "run", "--package", "backend", "alembic", "-c", "alembic.ini", "upgrade", "head"],
         cwd=backend_root,
         env=env,
         capture_output=True,
@@ -41,7 +48,7 @@ async def test_alembic_upgrade_head_against_temp_sqlite(tmp_path: Path) -> None:
     try:
         runs_page = await storage.list_runs(
             query=__import__(
-                "aef.contracts.persistence",
+                "backend.contracts.persistence",
                 fromlist=["RunQuery"],
             ).RunQuery()
         )
@@ -52,7 +59,13 @@ async def test_alembic_upgrade_head_against_temp_sqlite(tmp_path: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_pragmas_are_applied_on_sqlite_connect(tmp_path: Path) -> None:
-    """WAL + FK + ``synchronous=NORMAL`` must be active on every SQLite conn."""
+    """
+    WAL + FK + ``synchronous=NORMAL`` must be active on every SQLite conn.
+
+    :param tmp_path: Pytest temporary directory path.
+
+    :return: :class:`None` instance.
+    """
     db_path = tmp_path / "pragma-test.sqlite3"
     storage = SQLiteStorage.from_url(f"sqlite+aiosqlite:///{db_path}")
     try:

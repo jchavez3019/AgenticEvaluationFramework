@@ -165,15 +165,15 @@ The high-level architecture flags OTel as a future, flag-gated addition (§9.6).
 ## Implementation Plan
 
 - **Affected paths**:
-  - `backend/src/aef/observability/__init__.py` — re-exports `get_logger`, `configure_logging`, `timed`, `run_context`, `start_span`.
-  - `backend/src/aef/observability/logging.py` — `get_logger`, `configure_logging`, `LoggingSettings`, formatters, the contextvars filter.
-  - `backend/src/aef/observability/context.py` — `run_context`, contextvar definitions.
-  - `backend/src/aef/observability/timing.py` — `timed` decorator and context manager, `TelemetryRecorder`.
-  - `backend/src/aef/observability/telemetry.py` — `TelemetryReport` Pydantic model, OTel `start_span` reservation.
-  - `backend/src/aef/contracts/run.py` — adds `telemetry: TelemetryReport` to `EvaluationRunResult`.
-  - `backend/src/aef/cli/__init__.py` (or wherever the CLI entry lives) — calls `configure_logging` once, after Hydra resolves the run directory.
-  - `backend/src/aef/api/app.py` — calls `configure_logging` during FastAPI startup.
-  - `backend/src/aef/engine/local.py` and `backend/src/aef/engine/distributed.py` — enter `run_context(run_id=..., stage=...)` at the top of the run, switch `stage` between generation and scoring as the pipeline proceeds.
+  - `backend/observability/__init__.py` — re-exports `get_logger`, `configure_logging`, `timed`, `run_context`, `start_span`.
+  - `backend/observability/logging.py` — `get_logger`, `configure_logging`, `LoggingSettings`, formatters, the contextvars filter.
+  - `backend/observability/context.py` — `run_context`, contextvar definitions.
+  - `backend/observability/timing.py` — `timed` decorator and context manager, `TelemetryRecorder`.
+  - `backend/observability/telemetry.py` — `TelemetryReport` Pydantic model, OTel `start_span` reservation.
+  - `backend/contracts/run.py` — adds `telemetry: TelemetryReport` to `EvaluationRunResult`.
+  - `cli/__init__.py` (or `cli/entrypoint.py`) — calls `configure_logging` once, after Hydra resolves the run directory.
+  - `backend/api/app.py` — calls `configure_logging` during FastAPI startup.
+  - `backend/engine/local.py` and `backend/engine/distributed.py` — enter `run_context(run_id=..., stage=...)` at the top of the run, switch `stage` between generation and scoring as the pipeline proceeds.
   - `backend/tests/unit/observability/` — tests for the formatter, contextvars filter, and telemetry round-trip.
 - **Dependencies**:
   - `python-json-logger` — pinned (e.g., `>=2.0,<3`).
@@ -216,7 +216,7 @@ flowchart LR
 
 - [ ] `aef.observability.logging.get_logger(name)` returns a `logging.Logger` whose `.name` equals `name`.
 - [ ] `configure_logging(...)` is idempotent: a second call in the same process is a no-op (or a warning), not a duplicate handler set.
-- [ ] No file under `backend/src/aef/` calls `logging.basicConfig`, attaches handlers to a non-root logger, or uses `print(`. Verifiable via `rg`.
+- [ ] No file under `backend/` calls `logging.basicConfig`, attaches handlers to a non-root logger, or uses `print(`. Verifiable via `rg`.
 - [ ] Every public adapter, engine, metric, and persistence module calls `get_logger(__name__)` at module top.
 - [ ] A run executed end-to-end produces an `EvaluationRunResult.telemetry` populated with `per_record`, `per_stage`, and `counters`, and `total_duration_ms` matches wall-clock duration within tolerance.
 - [ ] Records emitted inside `run_context(run_id="X", stage="generation", sample_idx=5)` carry those fields.

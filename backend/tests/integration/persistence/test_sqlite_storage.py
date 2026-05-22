@@ -6,13 +6,13 @@ from datetime import UTC, datetime
 
 import pytest
 
-from aef.contracts.adapter_spec import (
+from backend.contracts.adapter_spec import (
     DatasetAdapterSpec,
     ModelAdapterSpec,
     ModelCapabilities,
 )
-from aef.contracts.metric_result import MetricKind, MetricSpec, MetricStatus
-from aef.contracts.persistence import (
+from backend.contracts.metric_result import MetricKind, MetricSpec, MetricStatus
+from backend.contracts.persistence import (
     DatasetMetadataRecord,
     MetricResultRecord,
     ModelMetadataRecord,
@@ -21,12 +21,19 @@ from aef.contracts.persistence import (
     RunSummary,
     SampleRecord,
 )
-from aef.contracts.run import EvaluationRunRequest
-from aef.contracts.telemetry import TelemetryReport
-from aef.persistence import SQLiteStorage
+from backend.contracts.run import EvaluationRunRequest
+from backend.contracts.telemetry import TelemetryReport
+from backend.persistence import SQLiteStorage
 
 
 def _request(run_id: str = "run-001") -> EvaluationRunRequest:
+    """
+    Request.
+
+    :param run_id: Unique run identifier.
+
+    :return: A :class:`EvaluationRunRequest` instance.
+    """
     return EvaluationRunRequest(
         run_id=run_id,
         title="round-trip",
@@ -50,6 +57,11 @@ def _request(run_id: str = "run-001") -> EvaluationRunRequest:
 async def test_create_and_get_run_round_trip(
     in_memory_storage: SQLiteStorage,
 ) -> None:
+    """
+    Verify create and get run round trip.
+
+    :param in_memory_storage: The in memory storage.
+    """
     request = _request()
     record = await in_memory_storage.create_run(request)
     assert record.id == "run-001"
@@ -103,6 +115,11 @@ async def test_create_and_get_run_round_trip(
 async def test_secrets_are_redacted_in_persisted_spec(
     in_memory_storage: SQLiteStorage,
 ) -> None:
+    """
+    Verify secrets are redacted in persisted spec.
+
+    :param in_memory_storage: The in memory storage.
+    """
     request = _request("run-redact")
     await in_memory_storage.create_run(request)
     fetched = await in_memory_storage.get_run("run-redact")
@@ -113,6 +130,11 @@ async def test_secrets_are_redacted_in_persisted_spec(
 async def test_get_run_unknown_raises_keyerror(
     in_memory_storage: SQLiteStorage,
 ) -> None:
+    """
+    Verify get run unknown raises keyerror.
+
+    :param in_memory_storage: The in memory storage.
+    """
     with pytest.raises(KeyError, match="not found"):
         await in_memory_storage.get_run("does-not-exist")
 
@@ -120,6 +142,11 @@ async def test_get_run_unknown_raises_keyerror(
 async def test_list_runs_filters_and_paginates(
     in_memory_storage: SQLiteStorage,
 ) -> None:
+    """
+    Verify list runs filters and paginates.
+
+    :param in_memory_storage: The in memory storage.
+    """
     for i in range(7):
         request = _request(run_id=f"run-{i:03d}")
         await in_memory_storage.create_run(request)
@@ -138,6 +165,11 @@ async def test_list_runs_filters_and_paginates(
 async def test_delete_run_cascades(
     in_memory_storage: SQLiteStorage,
 ) -> None:
+    """
+    Verify delete run cascades.
+
+    :param in_memory_storage: The in memory storage.
+    """
     request = _request("run-del")
     await in_memory_storage.create_run(request)
     await in_memory_storage.append_sample(
@@ -152,7 +184,13 @@ async def test_delete_run_cascades(
 async def test_foreign_key_violation_raises(
     in_memory_storage: SQLiteStorage,
 ) -> None:
-    """Inserting a sample whose run does not exist must fail."""
+    """
+    Inserting a sample whose run does not exist must fail.
+
+    :param in_memory_storage: In-memory SQLite storage fixture.
+
+    :return: :class:`None` instance.
+    """
     from sqlalchemy.exc import IntegrityError
 
     sample = SampleRecord(run_id="nope", idx=0, input="x")
@@ -163,6 +201,11 @@ async def test_foreign_key_violation_raises(
 async def test_partial_status_when_summary_has_errors(
     in_memory_storage: SQLiteStorage,
 ) -> None:
+    """
+    Verify partial status when summary has errors.
+
+    :param in_memory_storage: The in memory storage.
+    """
     request = _request("run-partial")
     await in_memory_storage.create_run(request)
     started = datetime.now(UTC)
@@ -180,6 +223,11 @@ async def test_partial_status_when_summary_has_errors(
 async def test_metadata_upsert_and_list(
     in_memory_storage: SQLiteStorage,
 ) -> None:
+    """
+    Verify metadata upsert and list.
+
+    :param in_memory_storage: The in memory storage.
+    """
     model_meta = ModelMetadataRecord(
         id="mock-chat-id",
         name="mock-chat",
@@ -212,8 +260,12 @@ async def test_metadata_upsert_and_list(
 
 
 async def test_storage_satisfies_protocol() -> None:
-    """:class:`SQLiteStorage` must structurally satisfy :class:`StorageAdapter`."""
-    from aef.persistence.base import StorageAdapter
+    """
+    :class:`SQLiteStorage` must structurally satisfy :class:`StorageAdapter`.
+
+    :return: :class:`None` instance.
+    """
+    from backend.persistence.base import StorageAdapter
 
     storage = SQLiteStorage.from_url("sqlite+aiosqlite:///:memory:")
     assert isinstance(storage, StorageAdapter)

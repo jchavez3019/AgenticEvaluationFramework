@@ -247,12 +247,12 @@ Hydra's `BasicLauncher` is the v1 default. The `JoblibLauncher` and `RayLauncher
 
 - **Affected paths**:
   - `configs/` — directory layout exactly as in §1.
-  - `cli/` (top-level) — wraps the Python entry point; `pyproject.toml` exposes `aef-eval`.
-  - `backend/src/aef/cli/__init__.py` — `main`, `run`, `validate_config`, hydra-zen registration.
-  - `backend/src/aef/cli/config.py` — hydra-zen builds and store calls for every config group.
-  - `backend/src/aef/cli/visualize.py` — `aef-plot` and `aef-report` post-processors that read `outputs/<...>/result.json`.
-  - `backend/src/aef/contracts/run.py` — `EvaluationRunRequest`, `EngineConfig`, `OutputConfig` (so Hydra has typed targets).
-  - `backend/src/aef/adapters/capabilities.py` — `validate_against_capabilities(request)` helper.
+  - `cli/` (workspace member) — flat package beside `cli/pyproject.toml`; exposes `aef-eval`, `aef-plot`, `aef-report`.
+  - `cli/__init__.py` — `main`, `run`, `validate_config`, hydra-zen registration entry.
+  - `cli/config.py` — hydra-zen builds and store calls for every config group.
+  - `cli/visualize.py` — `aef-plot` and `aef-report` post-processors that read `outputs/<...>/result.json`.
+  - `backend/contracts/run.py` — `EvaluationRunRequest`, `EngineConfig`, `OutputConfig` (so Hydra has typed targets).
+  - `backend/adapters/capabilities.py` — `validate_against_capabilities(request)` helper.
   - `docs/cli.md` (new, optional but recommended) — quickstart and override syntax cheat sheet.
 - **Dependencies**:
   - `hydra-core>=1.3,<2`.
@@ -287,7 +287,7 @@ Hydra's `BasicLauncher` is the v1 default. The `JoblibLauncher` and `RayLauncher
 - [ ] `aef-eval model=openai_default sampling.top_k=40` exits with `UnsupportedSamplingParameterError` _before_ any model call (because OpenAI's chat-completions adapter does not honor `top_k`).
 - [ ] `aef-eval --multirun sampling.temperature=0.0,0.5,1.0` produces three runs with three distinct `run_id`s and three SQLite rows.
 - [ ] Every shipped YAML under `configs/` either composes other named entries via `defaults:` or references a hydra-zen-built `_target_`. No free-form YAML leaves.
-- [ ] After `instantiate(cfg)`, every value reaching `aef.cli.run` is a Pydantic object (verifiable by a unit test that asserts `isinstance(request, EvaluationRunRequest)` and that all fields are typed sub-models, not `DictConfig`).
+- [ ] After `instantiate(cfg)`, every value reaching `cli.run` is a Pydantic object (verifiable by a unit test that asserts `isinstance(request, EvaluationRunRequest)` and that all fields are typed sub-models, not `DictConfig`).
 - [ ] `pyproject.toml` does NOT list `argparse`, `click`, or `typer` as dependencies.
 - [ ] `pyproject.toml` declares `[project.scripts]` entries for `aef-eval`, `aef-plot`, `aef-report`.
 - [ ] `outputs/<date>/<time>-<run_id>/.hydra/config.yaml` is produced and matches the resolved configuration of the run.

@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from aef.api.app import create_app
+from backend.api.app import create_app
 
 
 def test_openapi_document_lists_runs_and_registries() -> None:
+    """Verify openapi document lists runs and registries."""
     app = create_app()
     schema = app.openapi()
     assert schema["openapi"].startswith("3.")
@@ -18,6 +19,7 @@ def test_openapi_document_lists_runs_and_registries() -> None:
 
 
 def test_no_cors_middleware_is_installed() -> None:
+    """Verify no cors middleware is installed."""
     app = create_app()
     middleware_repr = " ".join(repr(m) for m in app.user_middleware)
     assert "CORSMiddleware" not in middleware_repr

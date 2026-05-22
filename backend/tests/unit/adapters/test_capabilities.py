@@ -4,16 +4,17 @@ from __future__ import annotations
 
 import pytest
 
-from aef.adapters.capabilities import (
+from backend.adapters.capabilities import (
     ContextOverflowError,
     UnsupportedSamplingParameterError,
     validate_against_capabilities,
 )
-from aef.contracts.adapter_spec import ModelCapabilities
-from aef.contracts.primitives import GenerationConfig
+from backend.contracts.adapter_spec import ModelCapabilities
+from backend.contracts.primitives import GenerationConfig
 
 
 def test_supported_parameter_passes_validation() -> None:
+    """Verify supported parameter passes validation."""
     capabilities = ModelCapabilities(
         supported_sampling_parameters=frozenset({"temperature", "max_output_tokens"}),
     )
@@ -27,6 +28,7 @@ def test_supported_parameter_passes_validation() -> None:
 
 
 def test_unsupported_parameter_raises() -> None:
+    """Verify unsupported parameter raises."""
     capabilities = ModelCapabilities(
         supported_sampling_parameters=frozenset({"temperature"}),
     )
@@ -44,6 +46,7 @@ def test_unsupported_parameter_raises() -> None:
 
 
 def test_unset_parameter_does_not_raise_even_if_unsupported() -> None:
+    """Verify unset parameter does not raise even if unsupported."""
     capabilities = ModelCapabilities(
         supported_sampling_parameters=frozenset({"temperature"}),
     )
@@ -57,6 +60,7 @@ def test_unset_parameter_does_not_raise_even_if_unsupported() -> None:
 
 
 def test_context_overflow_raises_when_sum_exceeds_limit() -> None:
+    """Verify context overflow raises when sum exceeds limit."""
     capabilities = ModelCapabilities(
         max_context_tokens=128,
         supported_sampling_parameters=frozenset({"max_output_tokens"}),
@@ -73,6 +77,7 @@ def test_context_overflow_raises_when_sum_exceeds_limit() -> None:
 
 
 def test_context_overflow_skipped_when_limit_unset() -> None:
+    """Verify context overflow skipped when limit unset."""
     capabilities = ModelCapabilities(
         max_context_tokens=None,
         supported_sampling_parameters=frozenset({"max_output_tokens"}),
@@ -88,6 +93,7 @@ def test_context_overflow_skipped_when_limit_unset() -> None:
 
 
 def test_context_overflow_skipped_when_prompt_tokens_unknown() -> None:
+    """Verify context overflow skipped when prompt tokens unknown."""
     capabilities = ModelCapabilities(
         max_context_tokens=64,
         supported_sampling_parameters=frozenset({"max_output_tokens"}),

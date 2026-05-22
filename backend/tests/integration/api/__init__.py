@@ -1,1 +1,1 @@
-"""Integration tests for ``aef.api``."""
+"""Integration tests for ``backend.api``."""

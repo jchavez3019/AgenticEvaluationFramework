@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from aef.persistence.base import REDACTED_PLACEHOLDER, redact_secrets
+from backend.persistence.base import REDACTED_PLACEHOLDER, redact_secrets
 
 
 def test_top_level_api_key_is_redacted() -> None:
+    """Verify top level api key is redacted."""
     payload = {"api_key": "sk-12345", "model_id": "gpt-4o"}
     out = redact_secrets(payload)
     assert out["api_key"] == REDACTED_PLACEHOLDER
@@ -13,6 +14,7 @@ def test_top_level_api_key_is_redacted() -> None:
 
 
 def test_case_insensitive_keys_are_redacted() -> None:
+    """Verify case insensitive keys are redacted."""
     payload = {"API_KEY": "sk-12345", "Auth_Token": "bearer-abc"}
     out = redact_secrets(payload)
     assert out["API_KEY"] == REDACTED_PLACEHOLDER
@@ -20,6 +22,7 @@ def test_case_insensitive_keys_are_redacted() -> None:
 
 
 def test_nested_dict_is_redacted() -> None:
+    """Verify nested dict is redacted."""
     payload = {"config": {"openai_api_key": "sk-12345"}, "name": "openai"}
     out = redact_secrets(payload)
     assert out["config"]["openai_api_key"] == REDACTED_PLACEHOLDER
@@ -27,6 +30,7 @@ def test_nested_dict_is_redacted() -> None:
 
 
 def test_list_of_dicts_is_redacted() -> None:
+    """Verify list of dicts is redacted."""
     payload = {"connections": [{"password": "p"}, {"id": "x"}]}
     out = redact_secrets(payload)
     assert out["connections"][0]["password"] == REDACTED_PLACEHOLDER
@@ -34,6 +38,7 @@ def test_list_of_dicts_is_redacted() -> None:
 
 
 def test_non_string_values_pass_through() -> None:
+    """Verify non string values pass through."""
     payload = {"name": "test", "max_tokens": 128, "is_remote": True, "values": [1, 2]}
     out = redact_secrets(payload)
     assert out["max_tokens"] == 128
@@ -42,6 +47,7 @@ def test_non_string_values_pass_through() -> None:
 
 
 def test_redact_does_not_mutate_input() -> None:
+    """Verify redact does not mutate input."""
     payload = {"api_key": "sk-12345"}
     redact_secrets(payload)
     assert payload["api_key"] == "sk-12345"

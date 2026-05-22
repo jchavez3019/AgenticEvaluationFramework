@@ -1,20 +1,25 @@
-"""Round-trip and validator tests for ``aef.contracts.adapter_spec``."""
+"""Round-trip and validator tests for ``backend.contracts.adapter_spec``."""
 
 from __future__ import annotations
 
 import pytest
 from pydantic import ValidationError
 
-from aef.contracts.adapter_spec import (
+from backend.contracts.adapter_spec import (
     DatasetAdapterSpec,
     JudgeAdapterSpec,
     ModelAdapterSpec,
     ModelCapabilities,
 )
-from aef.contracts.primitives import Rubric, RubricCriterion
+from backend.contracts.primitives import Rubric, RubricCriterion
 
 
 def _make_rubric() -> Rubric:
+    """
+    Make rubric.
+
+    :return: A :class:`Rubric` instance.
+    """
     return Rubric(
         name="default_v1",
         version="1.0",
@@ -34,6 +39,7 @@ def _make_rubric() -> Rubric:
 
 
 def test_model_capabilities_round_trip() -> None:
+    """Verify model capabilities round trip."""
     caps = ModelCapabilities(
         supports_streaming=True,
         max_context_tokens=4096,
@@ -49,11 +55,13 @@ def test_model_capabilities_round_trip() -> None:
 
 
 def test_model_capabilities_max_context_tokens_must_be_positive() -> None:
+    """Verify model capabilities max context tokens must be positive."""
     with pytest.raises(ValidationError):
         ModelCapabilities(max_context_tokens=0)
 
 
 def test_model_adapter_spec_round_trip() -> None:
+    """Verify model adapter spec round trip."""
     spec = ModelAdapterSpec(
         name="huggingface",
         model_id="HuggingFaceTB/SmolLM2-135M-Instruct",
@@ -74,6 +82,7 @@ def test_model_adapter_spec_round_trip() -> None:
 
 
 def test_dataset_adapter_spec_round_trip() -> None:
+    """Verify dataset adapter spec round trip."""
     spec = DatasetAdapterSpec(
         name="csv",
         dataset_id="./data/eval.csv",
@@ -85,6 +94,7 @@ def test_dataset_adapter_spec_round_trip() -> None:
 
 
 def test_judge_adapter_spec_round_trip() -> None:
+    """Verify judge adapter spec round trip."""
     spec = JudgeAdapterSpec(
         name="mock-judge",
         model_id="mock-judge-1",
@@ -102,6 +112,7 @@ def test_judge_adapter_spec_round_trip() -> None:
 
 
 def test_judge_adapter_spec_rejects_unknown_judge_kind() -> None:
+    """Verify judge adapter spec rejects unknown judge kind."""
     with pytest.raises(ValidationError):
         JudgeAdapterSpec(
             name="bad",
@@ -112,6 +123,7 @@ def test_judge_adapter_spec_rejects_unknown_judge_kind() -> None:
 
 
 def test_specs_reject_unknown_fields() -> None:
+    """Verify specs reject unknown fields."""
     with pytest.raises(ValidationError):
         ModelAdapterSpec.model_validate(
             {"name": "x", "model_id": "y", "extra_field": "boom"},

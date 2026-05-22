@@ -11,8 +11,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  backend-check:
-    name: backend / ruff + pyright + pytest
+  workspace-check:
+    name: workspace / sync + backend + cli checks
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -26,25 +26,35 @@ jobs:
       - name: Set up Python 3.13
         run: uv python install 3.13
 
-      - name: Sync dependencies
-        working-directory: backend
-        run: uv sync --all-extras --dev
+      - name: Sync workspace
+        run: uv sync --all-packages --all-extras --dev
 
-      - name: Ruff (lint)
-        working-directory: backend
-        run: uv run ruff check src tests
+      - name: reST docstrings (backend, cli, scripts)
+        run: uv run python scripts/check_rest_docstrings.py
 
-      - name: Ruff (format)
-        working-directory: backend
-        run: uv run ruff format --check src tests
+      - name: Ruff backend (lint)
+        run: cd backend && uv run ruff check . tests
 
-      - name: Pyright (strict)
-        working-directory: backend
-        run: uv run pyright src
+      - name: Ruff backend (format)
+        run: cd backend && uv run ruff format --check . tests
 
-      - name: Pytest (default markers)
-        working-directory: backend
-        run: uv run pytest
+      - name: Pyright backend
+        run: cd backend && uv run pyright
+
+      - name: Pytest backend
+        run: cd backend && uv run pytest
+
+      - name: Ruff cli (lint)
+        run: cd cli && uv run ruff check . tests
+
+      - name: Ruff cli (format)
+        run: cd cli && uv run ruff format --check . tests
+
+      - name: Pyright cli
+        run: cd cli && uv run pyright
+
+      - name: Pytest cli
+        run: cd cli && uv run pytest
 
       - name: Pre-commit
         run: |

@@ -1,13 +1,14 @@
-"""Tests for :mod:`aef.observability.context`."""
+"""Tests for :mod:`backend.observability.context`."""
 
 from __future__ import annotations
 
 import asyncio
 
-from aef.observability.context import current_context, run_context
+from backend.observability.context import current_context, run_context
 
 
 def test_current_context_is_empty_outside_run_context() -> None:
+    """Verify current context is empty outside run context."""
     ctx = current_context()
     assert ctx.run_id is None
     assert ctx.sample_idx is None
@@ -15,7 +16,14 @@ def test_current_context_is_empty_outside_run_context() -> None:
 
 
 def test_run_context_sets_and_restores_values() -> None:
+    """Verify run context sets and restores values."""
+
     async def _inner() -> None:
+        """
+        Inner.
+
+        :return: The None result.
+        """
         async with run_context(run_id="run-A", stage="setup"):
             ctx = current_context()
             assert ctx.run_id == "run-A"
@@ -28,7 +36,14 @@ def test_run_context_sets_and_restores_values() -> None:
 
 
 def test_nested_run_context_inherits_then_restores() -> None:
+    """Verify nested run context inherits then restores."""
+
     async def _inner() -> None:
+        """
+        Inner.
+
+        :return: The None result.
+        """
         async with run_context(run_id="run-A", stage="setup"):
             async with run_context(stage="generation", sample_idx=5):
                 ctx = current_context()

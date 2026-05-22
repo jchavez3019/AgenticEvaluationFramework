@@ -18,31 +18,52 @@ repos:
     hooks:
       - id: ruff
         args: [--fix]
-        files: ^backend/(src|tests)/.*\.py$
+        files: ^(backend|cli)/.*\.py$
       - id: ruff-format
-        files: ^backend/(src|tests)/.*\.py$
+        files: ^(backend|cli)/.*\.py$
 
-  # Pyright via the local uv-managed environment so the version matches
-  # backend/pyproject.toml exactly.
   - repo: local
     hooks:
-      - id: pyright
-        name: pyright (strict)
+      - id: pyright-backend
+        name: pyright backend (strict)
         language: system
         types: [python]
-        files: ^backend/src/.*\.py$
+        files: ^backend/.*\.py$
         pass_filenames: false
-        entry: bash -lc 'cd backend && uv run pyright src'
+        entry: bash -lc 'cd backend && uv run pyright'
 
-      - id: pytest-smoke
-        name: pytest smoke
+      - id: pyright-cli
+        name: pyright cli (strict)
         language: system
         types: [python]
-        files: ^backend/(src|tests)/.*\.py$
+        files: ^cli/.*\.py$
+        pass_filenames: false
+        entry: bash -lc 'cd cli && uv run pyright'
+
+      - id: check-rest-docstrings
+        name: reST docstrings (classes and callables)
+        language: system
+        types: [python]
+        files: ^(backend|cli|scripts)/.*\.py$
+        pass_filenames: false
+        entry: bash -lc 'uv run python scripts/check_rest_docstrings.py'
+
+      - id: pytest-backend
+        name: pytest backend
+        language: system
+        types: [python]
+        files: ^backend/.*\.py$
         pass_filenames: false
         entry: bash -lc 'cd backend && uv run pytest -q --no-header'
 
-  # Misc hygiene.
+      - id: pytest-cli
+        name: pytest cli
+        language: system
+        types: [python]
+        files: ^cli/.*\.py$
+        pass_filenames: false
+        entry: bash -lc 'cd cli && uv run pytest -q --no-header'
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
@@ -59,4 +80,4 @@ repos:
     hooks:
       - id: prettier
         types_or: [markdown, yaml, json]
-        exclude: ^backend/uv\.lock$
+        exclude: ^(backend/)?uv\.lock$|^uv\.lock$

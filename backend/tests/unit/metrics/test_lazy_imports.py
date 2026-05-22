@@ -1,24 +1,30 @@
-"""Verify ``import aef.metrics`` does not pull heavy upstream libraries.
+"""Verify ``import backend.metrics`` does not pull heavy upstream libraries.
 
 Per ADR-0004 §6: ``Each metric module's heavy upstream library is NOT
 imported at the top of the file (verifiable via grep + an import test
 that asserts only stdlib + pydantic are pulled by the bare ``import
-aef.metrics``).``
+backend.metrics``).``
 """
 
 from __future__ import annotations
 
 import subprocess
-import sys
 import textwrap
+from pathlib import Path
 
 
-def test_importing_aef_metrics_does_not_import_heavy_libs() -> None:
-    """A subprocess imports ``aef.metrics`` and dumps ``sys.modules`` keys."""
+def test_importing_backend_metrics_does_not_import_heavy_libs() -> None:
+    """
+    A subprocess imports ``backend.metrics`` and dumps ``sys.modules`` keys.
+
+    :return: :class:`None` instance.
+    """
+    import shutil
+
     code = textwrap.dedent(
         """
         import sys
-        import aef.metrics  # noqa: F401
+        import backend.metrics  # noqa: F401
 
         forbidden = {
             "sacrebleu",
@@ -36,8 +42,12 @@ def test_importing_aef_metrics_does_not_import_heavy_libs() -> None:
         sys.exit(0)
         """,
     )
+    uv_path = shutil.which("uv")
+    assert uv_path is not None, "uv must be on PATH"
+    repo_root = Path(__file__).resolve().parents[4]
     result = subprocess.run(  # noqa: S603 — args are a fixed allowlist.
-        [sys.executable, "-c", code],
+        [uv_path, "run", "--package", "backend", "python", "-c", code],
+        cwd=repo_root,
         capture_output=True,
         text=True,
         check=False,

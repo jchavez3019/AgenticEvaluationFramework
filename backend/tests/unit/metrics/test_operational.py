@@ -2,18 +2,25 @@
 
 from __future__ import annotations
 
-from aef.contracts.metric_result import (
+from backend.contracts.metric_result import (
     MetricInputs,
     MetricKind,
     MetricResult,
     MetricSpec,
     MetricStatus,
 )
-from aef.contracts.primitives import GenerationResponse, Usage
-from aef.metrics import build_metric
+from backend.contracts.primitives import GenerationResponse, Usage
+from backend.metrics import build_metric
 
 
 def _inputs(*, candidate: str = "ok", generation: GenerationResponse | None = None) -> MetricInputs:
+    """Build :class:`MetricInputs` for operational metric tests.
+
+    :param candidate: Model output text.
+    :param generation: Optional generation response metadata.
+
+    :return: Populated metric inputs.
+    """
     return MetricInputs(
         sample_idx=0,
         input="x",
@@ -24,6 +31,7 @@ def _inputs(*, candidate: str = "ok", generation: GenerationResponse | None = No
 
 
 async def test_latency_value_matches_generation() -> None:
+    """Verify latency value matches generation."""
     metric = build_metric(MetricSpec(name="latency", kind=MetricKind.OPERATIONAL))
     result = await metric.compute(
         _inputs(generation=GenerationResponse(text="ok", latency_ms=42.0)),
@@ -33,6 +41,7 @@ async def test_latency_value_matches_generation() -> None:
 
 
 async def test_latency_aggregate_reports_percentiles() -> None:
+    """Verify latency aggregate reports percentiles."""
     metric = build_metric(MetricSpec(name="latency", kind=MetricKind.OPERATIONAL))
     per_sample: list[MetricResult] = []
     for i, ms in enumerate([10.0, 20.0, 30.0, 40.0, 50.0]):
@@ -54,6 +63,7 @@ async def test_latency_aggregate_reports_percentiles() -> None:
 
 
 async def test_token_counts_includes_subscores() -> None:
+    """Verify token counts includes subscores."""
     metric = build_metric(MetricSpec(name="token_counts", kind=MetricKind.OPERATIONAL))
     result = await metric.compute(
         _inputs(
@@ -69,6 +79,7 @@ async def test_token_counts_includes_subscores() -> None:
 
 
 async def test_token_counts_handles_unknown_total() -> None:
+    """Verify token counts handles unknown total."""
     metric = build_metric(MetricSpec(name="token_counts", kind=MetricKind.OPERATIONAL))
     result = await metric.compute(
         _inputs(generation=GenerationResponse(text="ok", usage=Usage())),
@@ -77,6 +88,7 @@ async def test_token_counts_handles_unknown_total() -> None:
 
 
 async def test_cost_returns_none_when_missing() -> None:
+    """Verify cost returns none when missing."""
     metric = build_metric(MetricSpec(name="cost", kind=MetricKind.OPERATIONAL))
     result = await metric.compute(
         _inputs(generation=GenerationResponse(text="ok")),
@@ -85,6 +97,7 @@ async def test_cost_returns_none_when_missing() -> None:
 
 
 async def test_cost_returns_value_when_set() -> None:
+    """Verify cost returns value when set."""
     metric = build_metric(MetricSpec(name="cost", kind=MetricKind.OPERATIONAL))
     result = await metric.compute(
         _inputs(generation=GenerationResponse(text="ok", usage=Usage(cost_usd=0.0125))),
@@ -93,6 +106,7 @@ async def test_cost_returns_value_when_set() -> None:
 
 
 async def test_output_validity_json_pass() -> None:
+    """Verify output validity json pass."""
     metric = build_metric(
         MetricSpec(name="output_validity", kind=MetricKind.OPERATIONAL),
     )
@@ -101,6 +115,7 @@ async def test_output_validity_json_pass() -> None:
 
 
 async def test_output_validity_json_fail() -> None:
+    """Verify output validity json fail."""
     metric = build_metric(
         MetricSpec(name="output_validity", kind=MetricKind.OPERATIONAL),
     )
@@ -109,6 +124,7 @@ async def test_output_validity_json_fail() -> None:
 
 
 async def test_output_validity_non_empty_mode() -> None:
+    """Verify output validity non empty mode."""
     metric = build_metric(
         MetricSpec(
             name="output_validity",

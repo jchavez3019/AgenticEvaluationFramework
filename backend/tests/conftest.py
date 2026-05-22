@@ -13,9 +13,9 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from aef.observability import TelemetryRecorder, configure_logging
-from aef.observability.timing import get_recorder
-from aef.persistence import SQLiteStorage
+from backend.observability import TelemetryRecorder, configure_logging
+from backend.observability.timing import get_recorder
+from backend.persistence import SQLiteStorage
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Iterator
@@ -23,14 +23,18 @@ if TYPE_CHECKING:
 
 @pytest.fixture(autouse=True)
 def reset_aef_logger_handlers() -> Iterator[None]:
-    """Detach handlers from the ``aef`` root logger between tests.
+    """
+    Detach handlers from the ``backend`` root logger between tests.
 
-    :func:`configure_logging` mutates the root logger; without this
-    fixture, handlers leak across tests and pytest's ``caplog`` (which
-    attaches its own handler to the root) double-emits records.
+    :func:`configure_logging` mutates the root logger; without this fixture, handlers leak
+    across tests and pytest's ``caplog`` (which attaches its own handler to the root)
+    double-emits records.
+
+
+    :yields: Nothing; performs per-test logger handler cleanup.
     """
     yield
-    root = logging.getLogger("aef")
+    root = logging.getLogger("backend")
     for handler in list(root.handlers):
         root.removeHandler(handler)
 
@@ -39,18 +43,22 @@ def reset_aef_logger_handlers() -> Iterator[None]:
 def caplog_aef(
     caplog: pytest.LogCaptureFixture,
 ) -> Iterator[pytest.LogCaptureFixture]:
-    """Pytest fixture that captures records from the ``aef`` logger tree.
+    """
+    Pytest fixture that captures records from the ``backend`` logger tree.
 
-    Tests assert structured fields (``run_id``, ``sample_idx``,
-    ``stage``) attached by :class:`ContextvarsFilter` by inspecting
-    ``caplog_aef.records``. ``configure_logging`` sets ``propagate=False``
-    on the ``aef`` logger, so we attach pytest's capture handler
-    directly to the ``aef`` logger for the duration of the test.
+    Tests assert structured fields (``run_id``, ``sample_idx``, ``stage``) attached by
+    :class:`ContextvarsFilter` by inspecting ``caplog_aef.records``. ``configure_logging``
+    sets ``propagate=False`` on the ``backend`` logger, so we attach pytest's capture
+    handler directly to the ``backend`` logger for the duration of the test.
+
+    :param caplog: Pytest caplog fixture.
+
+    :yields: The pytest log capture fixture bound to the ``backend`` logger.
     """
     configure_logging()
-    aef_logger = logging.getLogger("aef")
+    aef_logger = logging.getLogger("backend")
     aef_logger.addHandler(caplog.handler)
-    caplog.set_level(logging.DEBUG, logger="aef")
+    caplog.set_level(logging.DEBUG, logger="backend")
     try:
         yield caplog
     finally:
@@ -59,7 +67,11 @@ def caplog_aef(
 
 @pytest.fixture(autouse=True)
 def reset_telemetry_recorder() -> Iterator[TelemetryRecorder]:
-    """Drop any leftover :class:`TimingRecord` entries between tests."""
+    """
+    Drop any leftover :class:`TimingRecord` entries between tests.
+
+    :yields: The process-wide :class:`TelemetryRecorder` for the test body.
+    """
     recorder = get_recorder()
     recorder.reset()
     yield recorder
@@ -68,12 +80,15 @@ def reset_telemetry_recorder() -> Iterator[TelemetryRecorder]:
 
 @pytest.fixture
 async def in_memory_storage() -> AsyncIterator[SQLiteStorage]:
-    """Yield a fresh :class:`SQLiteStorage` backed by ``:memory:`` SQLite.
+    """
+    Yield a fresh :class:`SQLiteStorage` backed by ``:memory:`` SQLite.
 
-    The schema is created via ``Base.metadata.create_all`` rather than
-    Alembic — Alembic's offline-vs-online machinery is exercised in a
-    separate integration test. The fixture disposes of the engine on
-    teardown so connection state never leaks between cases.
+    The schema is created via ``Base.metadata.create_all`` rather than Alembic — Alembic's
+    offline-vs- online machinery is exercised in a separate integration test. The fixture
+    disposes of the engine on teardown so connection state never leaks between cases.
+
+
+    :yields: A connected in-memory :class:`SQLiteStorage` instance.
     """
     storage = SQLiteStorage.from_url("sqlite+aiosqlite:///:memory:")
     await storage.create_all()
