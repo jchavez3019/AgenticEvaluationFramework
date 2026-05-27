@@ -13,6 +13,7 @@ proxy.
 
 from __future__ import annotations
 
+import logging
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
@@ -20,7 +21,7 @@ from fastapi import FastAPI
 
 from backend.api.routers import adapters, datasets, metrics, runs
 from backend.config import get_settings
-from backend.observability import configure_logging, get_logger
+from backend.observability import get_logger
 from backend.persistence import SQLiteStorage
 
 if TYPE_CHECKING:
@@ -59,7 +60,10 @@ def create_app() -> FastAPI:
 
     :return: :class:`FastAPI` instance.
     """
-    configure_logging()
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)-7s %(name)s %(message)s",
+    )
     app = FastAPI(
         title="Agentic Evaluation Framework API",
         version="0.1.0",

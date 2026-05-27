@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
     from backend.contracts.primitives import PipelineStage
 
-
+# Thread-safe, asynchronous-aware global variables.
 _RUN_ID: ContextVar[str | None] = ContextVar("backend.run_id", default=None)
 _SAMPLE_IDX: ContextVar[int | None] = ContextVar("backend.sample_idx", default=None)
 _STAGE: ContextVar[PipelineStage | None] = ContextVar("backend.stage", default=None)
@@ -31,7 +31,12 @@ _STAGE: ContextVar[PipelineStage | None] = ContextVar("backend.stage", default=N
 
 @dataclass(frozen=True, slots=True)
 class RunContext:
-    """Snapshot of the current contextvars relevant to a run."""
+    """Snapshot of the current contextvars relevant to a run.
+
+    * run_id: Active evaluation run identifier, or ``None`` outside a run.
+    * sample_idx: Active sample index, or ``None`` when not processing a sample.
+    * stage: Active pipeline stage, or ``None`` when no stage is set.
+    """
 
     run_id: str | None
     sample_idx: int | None
@@ -44,7 +49,6 @@ def current_context() -> RunContext:
 
     Adapters, metrics, and timing primitives read this snapshot to attach run / sample /
     stage metadata to log records and :class:`TimingRecord` entries.
-
 
     :return: a frozen :class:`RunContext` snapshot. Any field is ``None`` when not set in
              the current task.
@@ -83,17 +87,34 @@ async def run_context(
     """
     tokens: list[Token[str | None] | Token[int | None] | Token[PipelineStage | None]] = []
     if run_id is not None:
+        # ContextVar.set() updates _RUN_ID. The returned Token remembers the prior value.
         tokens.append(_RUN_ID.set(run_id))
     if sample_idx is not None:
+        # Same pattern for _SAMPLE_IDX. Token stack enables nested run_context blocks.
         tokens.append(_SAMPLE_IDX.set(sample_idx))
     if stage is not None:
+        # Same pattern for _STAGE.
         tokens.append(_STAGE.set(stage))
     try:
+        # Yield a snapshot so callers can bind the block, e.g.:
+        #   async with run_context(run_id=rid, stage="setup") as ctx:
+        #       # ctx.run_id == rid, ctx.stage == "setup", ctx.sample_idx unchanged
         yield current_context()
     finally:
+        # Pop tokens in reverse (LIFO) so each contextvar returns to its pre-block value.
+        #
+        # Nested example (_RUN_ID starts as None):
+        # ```python
+        # async with run_context(run_id="run_123"):
+        #     # _RUN_ID.get() -> "run_123"; token remembers None
+        #     async with run_context(run_id="run_456"):
+        #         # _RUN_ID.get() -> "run_456"; token remembers "run_123"
+        #     # inner exit: reset restores "run_123"
+        #     # _RUN_ID.get() -> "run_123"
+        # # outer exit: reset restores None
+        # ```
         for token in reversed(tokens):
-            # Each contextvar exposes a Token typed against its own
-            # value type; reset() correctly handles the union.
+            # Token.var.reset() restores the ContextVar value from before .set() was invoked.
             token.var.reset(token)  # type: ignore[arg-type]
 
 

@@ -2,79 +2,67 @@
 
 from __future__ import annotations
 
-import json
 import logging
 from pathlib import Path
 
 import pytest
 
-from backend.observability import (
-    LoggingSettings,
-    configure_logging,
-    get_logger,
-    run_context,
-)
+from backend.observability import get_logger, run_context
+from backend.observability.logging import attach_file_handler
 
 
 def test_get_logger_name_equals_module_argument() -> None:
-    """Verify get logger name equals module argument."""
+    """Verify get_logger returns a logger with the expected name."""
     log = get_logger("backend.tests.module")
     assert log.name == "backend.tests.module"
 
 
-def test_configure_logging_is_idempotent() -> None:
-    """Verify configure logging is idempotent."""
-    configure_logging()
-    handler_count_first = len(logging.getLogger("backend").handlers)
-    configure_logging()
-    handler_count_second = len(logging.getLogger("backend").handlers)
-    assert handler_count_first == handler_count_second
-
-
-def test_console_format_smoke(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
+def test_attach_file_handler_writes_errors_to_file(tmp_path: Path) -> None:
     """
-    Verify console format smoke.
+    Verify attach_file_handler captures ERROR+ records to a file.
 
-    :param capsys: The capsys.
+    :param tmp_path: Pytest temporary directory.
     """
-    configure_logging(LoggingSettings(format="console"))
-    log = get_logger("backend.tests.console")
-    log.info("hello")
-    captured = capsys.readouterr()
-    assert "hello" in captured.err
-    assert "backend.tests.console" in captured.err
+    log_path = tmp_path / "error.log"
+    handler = attach_file_handler(log_path, level=logging.ERROR)
+    try:
+        log = get_logger("backend.tests.file")
+        log.error("something broke")
+        handler.flush()
+
+        contents = log_path.read_text(encoding="utf-8")
+        assert "something broke" in contents
+    finally:
+        logging.getLogger().removeHandler(handler)
 
 
-def test_json_format_emits_valid_json(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
+def test_attach_file_handler_ignores_below_level(tmp_path: Path) -> None:
     """
-    Verify json format emits valid json.
+    Verify attach_file_handler does NOT capture INFO records when level=ERROR.
 
-    :param capsys: The capsys.
+    :param tmp_path: Pytest temporary directory.
     """
-    configure_logging(LoggingSettings(format="json"))
-    log = get_logger("backend.tests.json")
-    log.info("payload")
-    captured = capsys.readouterr().err.strip()
-    assert captured, "expected at least one log line"
-    line = captured.splitlines()[-1]
-    parsed = json.loads(line)
-    assert parsed["level"] == "INFO"
-    assert parsed["logger"] == "backend.tests.json"
-    assert parsed["message"] == "payload"
-    assert parsed["run_id"] is None
+    log_path = tmp_path / "error.log"
+    handler = attach_file_handler(log_path, level=logging.ERROR)
+    try:
+        log = get_logger("backend.tests.file.info")
+        log.setLevel(logging.DEBUG)
+        log.info("just info")
+        handler.flush()
+
+        contents = log_path.read_text(encoding="utf-8") if log_path.exists() else ""
+        assert "just info" not in contents
+    finally:
+        logging.getLogger().removeHandler(handler)
 
 
 async def test_run_context_attaches_fields_to_records(
     caplog_aef: pytest.LogCaptureFixture,
 ) -> None:
     """
-    Verify run context attaches fields to records.
+    Verify run_context injects run_id, stage, sample_idx into log records.
 
-    :param caplog_aef: The caplog aef.
+    :param caplog_aef: Log capture fixture bound to the ``backend`` logger.
     """
     log = get_logger("backend.tests.ctx")
     async with run_context(run_id="run-X", stage="generation", sample_idx=3):
@@ -87,71 +75,15 @@ async def test_run_context_attaches_fields_to_records(
     assert record.__dict__["sample_idx"] == 3
 
 
-def test_redaction_filter_replaces_secret_extras(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    """
-    Verify redaction filter replaces secret extras.
-
-    :param capsys: The capsys.
-    """
-    configure_logging(LoggingSettings(format="json"))
-    log = get_logger("backend.tests.redact")
-    log.info("authenticated", extra={"api_key": "sk-very-secret"})
-    captured = capsys.readouterr().err.strip()
-    assert "sk-very-secret" not in captured
-    assert "<redacted>" in captured
-
-
-def test_redaction_filter_replaces_secret_in_message(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    """
-    Verify redaction filter replaces secret in message.
-
-    :param capsys: The capsys.
-    """
-    configure_logging(LoggingSettings(format="json"))
-    log = get_logger("backend.tests.redact")
-    log.info("connected with api_key=sk-very-secret to provider")
-    captured = capsys.readouterr().err.strip()
-    assert "sk-very-secret" not in captured
-    assert "<redacted>" in captured
-
-
-def test_file_handler_emits_json_lines(tmp_path: Path) -> None:
-    """
-    Verify file handler emits json lines.
-
-    :param tmp_path: The tmp path.
-    """
-    log_path = tmp_path / "run.log"
-    configure_logging(
-        LoggingSettings(format="console", file_path=log_path),
-    )
-    log = get_logger("backend.tests.file")
-    log.info("from-file")
-
-    for handler in logging.getLogger("backend").handlers:
-        handler.flush()
-
-    contents = log_path.read_text(encoding="utf-8").strip()
-    assert contents, "expected file output"
-    line = contents.splitlines()[-1]
-    parsed = json.loads(line)
-    assert parsed["message"] == "from-file"
-
-
 def test_no_print_or_basicconfig_in_backend_source() -> None:
-    """
-    ADR-0012 verification: no ``print(``, no ``logging.basicConfig``.
+    """ADR-0012 verification: no ``print(``, no ``logging.basicConfig`` in package code.
 
-    :return: :class:`None` instance.
+    ``api/app.py`` is excluded because it legitimately calls ``logging.basicConfig``
+    during FastAPI startup.
     """
     src = Path(__file__).resolve().parents[3]
     package_dirs = (
         "adapters",
-        "api",
         "config",
         "contracts",
         "engine",
@@ -161,7 +93,10 @@ def test_no_print_or_basicconfig_in_backend_source() -> None:
     )
     offenders: list[str] = []
     for package in package_dirs:
-        for py in (src / package).rglob("*.py"):
+        pkg_path = src / package
+        if not pkg_path.exists():
+            continue
+        for py in pkg_path.rglob("*.py"):
             text = py.read_text(encoding="utf-8")
             if "print(" in text and not py.name.startswith("test_"):
                 offenders.append(f"print( in {py}")

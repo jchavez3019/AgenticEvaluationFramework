@@ -41,9 +41,14 @@ class MetricStatus(StrEnum):
 class SubScore(BaseModel):
     """One named sub-value emitted by a variadic metric.
 
-    Examples: per-class precision in a classification metric, per-token
-    confidence, ROUGE-1/2/L variants. Anything richer than a scalar
-    primary value goes here, never in ``Dict[str, Any]``.
+    Examples: per-class precision, per-token confidence, and ROUGE-1/2/L
+    variants. Anything richer than a scalar primary value goes here, never in
+    ``Dict[str, Any]``.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * name: Stable sub-metric identifier (for example ``rouge-1``).
+    * value: Numeric sub-score on the metric's scale.
+    * notes: Optional human-readable annotation for dashboards or logs.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -54,7 +59,14 @@ class SubScore(BaseModel):
 
 
 class MetricApplicability(BaseModel):
-    """Predicates the engine evaluates per-sample to decide skip vs run."""
+    """Predicates the engine evaluates per-sample to decide skip vs run.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * requires_reference: Skip when the sample has no single ``reference`` string.
+    * requires_references: Skip when the sample has no ``references`` list.
+    * requires_context: Skip when the sample has no retrieved ``context`` chunks.
+    * requires_gold_context: Skip when the sample has no ``gold_context`` chunks.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -118,6 +130,17 @@ class MetricInputs(BaseModel):
     :class:`GenerationResponse` for operational metrics
     (latency / token counts / cost / output validity). Lexical and
     embedding metrics ignore it; the engine always populates it.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * sample_idx: Zero-based index of the sample within the run.
+    * input: Original dataset prompt for this sample.
+    * candidate: Model output being scored.
+    * reference: Single gold answer when present on the sample.
+    * references: Multiple gold answers when present on the sample.
+    * context: Retrieved passages supplied at generation time.
+    * gold_context: Gold passages for RAG metrics when present.
+    * sample_metadata: Optional structured tags from the dataset.
+    * generation: Full generation response; required for operational metrics.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -134,7 +157,19 @@ class MetricInputs(BaseModel):
 
 
 class MetricResult(BaseModel):
-    """Typed, variadic-safe metric output (per ADR-0004 §2)."""
+    """Typed, variadic-safe metric output (per ADR-0004 §2).
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * metric_name: Registry name of the metric that produced this result.
+    * metric_version: Version string of the metric implementation.
+    * sample_idx: Sample index when this is a per-sample result; ``None`` for aggregates.
+    * status: Outcome of the computation (ok, error, or skipped).
+    * value: Primary scalar score when the metric produced one.
+    * sub_values: Named sub-scores when the metric is variadic.
+    * compute_latency_ms: Wall-clock time spent computing this result.
+    * exception_class: Exception type name when ``status`` is error.
+    * exception_message: Exception message when ``status`` is error.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 

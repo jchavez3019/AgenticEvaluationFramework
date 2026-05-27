@@ -37,7 +37,21 @@ class RunStatus(StrEnum):
 
 
 class RunRecord(BaseModel):
-    """The ``runs`` row projected as Pydantic."""
+    """The ``runs`` row projected as Pydantic.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * id: Primary key — same value as ``run_id`` in contracts.
+    * title: Optional short label copied from the run request.
+    * description: Optional longer description copied from the run request.
+    * created_at: UTC timestamp when the run row was inserted.
+    * finished_at: UTC timestamp when the run reached a terminal status.
+    * status: Current lifecycle state of the run.
+    * engine_kind: Whether the run used local or distributed execution.
+    * model_spec: Frozen model adapter spec used for the run.
+    * dataset_spec: Frozen dataset adapter spec used for the run.
+    * metric_specs: Metric specs configured for the run.
+    * seed: Global RNG seed stored with the run.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -55,7 +69,17 @@ class RunRecord(BaseModel):
 
 
 class SampleRecord(BaseModel):
-    """The ``samples`` row projected as Pydantic."""
+    """The ``samples`` row projected as Pydantic.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * run_id: Foreign key to the parent run.
+    * idx: Zero-based sample index within the run.
+    * input: Prompt text fed to the model.
+    * reference: Gold answer when the dataset provided one.
+    * generation: Model output text after the generation stage.
+    * latency_ms: Generation latency recorded for this sample.
+    * error: Error message when generation or scoring failed for this sample.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -75,6 +99,18 @@ class MetricResultRecord(BaseModel):
     Carrying the same shape on both sides means the engine can produce a
     :class:`MetricResult`, hand it to ``append_metric_result(...)``, and
     the storage adapter just adds ``run_id``.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * run_id: Foreign key to the parent run.
+    * sample_idx: Sample index for per-sample metrics; ``None`` for aggregates.
+    * metric_name: Registry name of the metric.
+    * metric_version: Version string of the metric implementation.
+    * status: Outcome of the computation (ok, error, or skipped).
+    * value: Primary scalar score when produced.
+    * sub_values: Named sub-scores when the metric is variadic.
+    * compute_latency_ms: Wall-clock compute time for this result.
+    * exception_class: Exception type when ``status`` is error.
+    * exception_message: Exception message when ``status`` is error.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -96,6 +132,14 @@ class RunSummary(BaseModel):
 
     Stored in ``runs.summary_json`` so the dashboard's Run History card
     can render run-level columns without fetching every metric row.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * run_id: Unique identifier of the run.
+    * sample_count: Number of samples processed (or attempted).
+    * error_count: Number of samples that failed during the run.
+    * primary_metric_name: Name of the headline metric for the run card.
+    * primary_metric_value: Aggregate value of the headline metric.
+    * duration_ms: Total wall time for the run in milliseconds.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -109,7 +153,19 @@ class RunSummary(BaseModel):
 
 
 class RunQuery(BaseModel):
-    """Filter / pagination payload for :meth:`StorageAdapter.list_runs`."""
+    """Filter / pagination payload for :meth:`StorageAdapter.list_runs`.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * status: Filter to runs in this lifecycle state.
+    * engine_kind: Filter to runs executed with this engine kind.
+    * model_name: Filter to runs whose model spec name matches.
+    * dataset_name: Filter to runs whose dataset spec name matches.
+    * text: Case-insensitive substring match on title or description.
+    * created_after: Include runs created at or after this timestamp.
+    * created_before: Include runs created before this timestamp.
+    * page: One-based page index for pagination.
+    * limit: Maximum rows per page (capped at 200).
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -125,7 +181,14 @@ class RunQuery(BaseModel):
 
 
 class RunListPage(BaseModel):
-    """One page of :class:`RunRecord` results."""
+    """One page of :class:`RunRecord` results.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * items: Run records on this page.
+    * page: One-based page index echoed from the query.
+    * limit: Page size echoed from the query.
+    * total: Total matching runs across all pages.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -140,6 +203,13 @@ class ModelMetadataRecord(BaseModel):
 
     Denormalized from the most recent run that referenced the model; the
     Metadata Viewer dashboard card reads exclusively from this table.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * id: Stable metadata row identifier (typically the model spec name).
+    * name: Display name of the model adapter.
+    * capabilities: Capability flags from the latest seen model spec.
+    * description: Optional description from the latest seen model spec.
+    * last_seen_at: UTC timestamp when a run last referenced this model.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -152,7 +222,15 @@ class ModelMetadataRecord(BaseModel):
 
 
 class DatasetMetadataRecord(BaseModel):
-    """The ``dataset_metadata`` row projected as Pydantic."""
+    """The ``dataset_metadata`` row projected as Pydantic.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * id: Stable metadata row identifier (typically the dataset spec name).
+    * name: Display name of the dataset adapter.
+    * row_count: Number of rows advertised by the dataset when known.
+    * description: Optional description from the latest seen dataset spec.
+    * last_seen_at: UTC timestamp when a run last referenced this dataset.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 

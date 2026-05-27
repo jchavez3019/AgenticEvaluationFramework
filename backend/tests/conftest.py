@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from backend.observability import TelemetryRecorder, configure_logging
+from backend.observability import ContextvarsFilter, TelemetryRecorder
 from backend.observability.timing import get_recorder
 from backend.persistence import SQLiteStorage
 
@@ -46,23 +46,23 @@ def caplog_aef(
     """
     Pytest fixture that captures records from the ``backend`` logger tree.
 
-    Tests assert structured fields (``run_id``, ``sample_idx``, ``stage``) attached by
-    :class:`ContextvarsFilter` by inspecting ``caplog_aef.records``. ``configure_logging``
-    sets ``propagate=False`` on the ``backend`` logger, so we attach pytest's capture
-    handler directly to the ``backend`` logger for the duration of the test.
+    Attaches :class:`ContextvarsFilter` so log records carry ``run_id``,
+    ``sample_idx``, and ``stage`` fields during tests.
 
     :param caplog: Pytest caplog fixture.
 
     :yields: The pytest log capture fixture bound to the ``backend`` logger.
     """
-    configure_logging()
     aef_logger = logging.getLogger("backend")
+    ctx_filter = ContextvarsFilter()
+    caplog.handler.addFilter(ctx_filter)
     aef_logger.addHandler(caplog.handler)
     caplog.set_level(logging.DEBUG, logger="backend")
     try:
         yield caplog
     finally:
         aef_logger.removeHandler(caplog.handler)
+        caplog.handler.removeFilter(ctx_filter)
 
 
 @pytest.fixture(autouse=True)

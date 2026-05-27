@@ -18,7 +18,12 @@ if TYPE_CHECKING:
 
 
 class _BaseProgressEvent(BaseModel):
-    """Common base for typed progress events."""
+    """Common base for typed progress events.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * run_id: Unique identifier of the evaluation run emitting this event.
+    * emitted_at: UTC timestamp when the engine emitted the event.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -27,14 +32,23 @@ class _BaseProgressEvent(BaseModel):
 
 
 class StageStarted(_BaseProgressEvent):
-    """A pipeline stage has started for ``run_id``."""
+    """A pipeline stage has started for ``run_id``.
+
+    * kind: Discriminator tag for WebSocket and API consumers.
+    * stage: Name of the pipeline stage that started (setup, generation, scoring, …).
+    """
 
     kind: Literal["stage_started"] = "stage_started"
     stage: str
 
 
 class StageCompleted(_BaseProgressEvent):
-    """A pipeline stage has finished for ``run_id``."""
+    """A pipeline stage has finished for ``run_id``.
+
+    * kind: Discriminator tag for WebSocket and API consumers.
+    * stage: Name of the pipeline stage that completed.
+    * duration_ms: Wall time spent in this stage for the run.
+    """
 
     kind: Literal["stage_completed"] = "stage_completed"
     stage: str
@@ -42,7 +56,12 @@ class StageCompleted(_BaseProgressEvent):
 
 
 class SampleStarted(_BaseProgressEvent):
-    """The engine has begun processing a sample."""
+    """The engine has begun processing a sample.
+
+    * kind: Discriminator tag for WebSocket and API consumers.
+    * sample_idx: Zero-based index of the sample being processed.
+    * stage: Pipeline stage active for this sample (generation or scoring).
+    """
 
     kind: Literal["sample_started"] = "sample_started"
     sample_idx: Annotated[int, Field(ge=0)]
@@ -50,7 +69,13 @@ class SampleStarted(_BaseProgressEvent):
 
 
 class SampleCompleted(_BaseProgressEvent):
-    """The engine has finished a sample successfully."""
+    """The engine has finished a sample successfully.
+
+    * kind: Discriminator tag for WebSocket and API consumers.
+    * sample_idx: Zero-based index of the sample that completed.
+    * stage: Pipeline stage that finished for this sample.
+    * duration_ms: Wall time spent on this sample in ``stage``.
+    """
 
     kind: Literal["sample_completed"] = "sample_completed"
     sample_idx: Annotated[int, Field(ge=0)]
@@ -59,7 +84,14 @@ class SampleCompleted(_BaseProgressEvent):
 
 
 class SampleFailed(_BaseProgressEvent):
-    """A sample failed during processing."""
+    """A sample failed during processing.
+
+    * kind: Discriminator tag for WebSocket and API consumers.
+    * sample_idx: Zero-based index of the sample that failed.
+    * stage: Pipeline stage active when the failure occurred.
+    * exception_class: Exception type name for the failure.
+    * exception_message: Human-readable failure message.
+    """
 
     kind: Literal["sample_failed"] = "sample_failed"
     sample_idx: Annotated[int, Field(ge=0)]
@@ -69,7 +101,11 @@ class SampleFailed(_BaseProgressEvent):
 
 
 class RunFinalized(_BaseProgressEvent):
-    """The run finalized; its summary status is in ``status``."""
+    """The run finalized; its summary status is in ``status``.
+
+    * kind: Discriminator tag for WebSocket and API consumers.
+    * status: Terminal run outcome (succeeded, partial, failed, or cancelled).
+    """
 
     kind: Literal["run_finalized"] = "run_finalized"
     status: Literal["succeeded", "partial", "failed", "cancelled"]

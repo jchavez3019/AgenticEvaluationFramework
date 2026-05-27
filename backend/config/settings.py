@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     field is annotated with a default that matches the documented
     behaviour from the relevant ADR; the env var name is the field name
     upper-cased and prefixed with ``AEF_``.
+
+    * model_config: Pydantic-settings config — env prefix, optional ``.env`` file, frozen.
+    * database_url: SQLAlchemy async URL (SQLite by default; Postgres per ADR-0006).
+    * database_auto_upgrade: When ``True``, run Alembic migrations on startup.
+    * database_echo: When ``True``, echo SQL statements to the log (debug only).
+    * api_log_path: Filesystem path for the API server's rotating log file.
     """
 
     model_config = SettingsConfigDict(

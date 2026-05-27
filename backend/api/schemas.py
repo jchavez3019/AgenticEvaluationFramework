@@ -20,7 +20,11 @@ from backend.contracts.run import EvaluationRunRequest, EvaluationRunResult
 
 
 class CreateRunResponse(BaseModel):
-    """Returned by ``POST /runs`` — the run identifier the caller can poll."""
+    """Returned by ``POST /runs`` — the run identifier the caller can poll.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * run_id: Identifier the client uses for ``GET /runs/{run_id}`` and WebSocket progress.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -28,7 +32,12 @@ class CreateRunResponse(BaseModel):
 
 
 class AdapterListItem(BaseModel):
-    """One entry in the registered-adapters listing."""
+    """One entry in the registered-adapters listing.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * name: Registry name of the adapter or metric.
+    * kind: High-level category (model, judge, dataset, or metric family).
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -37,7 +46,11 @@ class AdapterListItem(BaseModel):
 
 
 class AdapterListResponse(BaseModel):
-    """Top-level body of ``GET /adapters``, ``/datasets``, ``/metrics``."""
+    """Top-level body of ``GET /adapters``, ``/datasets``, ``/metrics``.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * items: Registered adapters or metrics exposed by the endpoint.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 

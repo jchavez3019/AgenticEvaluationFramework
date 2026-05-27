@@ -63,5 +63,5 @@ skeleton. Each lands in a separate plan:
    (`MockChatModel`, `MockJudge`, `MockDatasetAdapter`). Never reach into
    SDK internals via `unittest.mock.patch`.
 5. CI must stay green: Ruff, Pyright (strict), reST docstring policy
-   (``uv run python scripts/check_rest_docstrings.py``), pytest with coverage
+   (`uv run python scripts/check_rest_docstrings.py`), pytest with coverage
    ≥ 85%, and the ADR drift check.

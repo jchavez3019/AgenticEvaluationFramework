@@ -66,6 +66,13 @@ dev = [
     "freezegun>=1.5,<2",
     "respx>=0.21,<1",
     "types-PyYAML>=6.0,<7",
+    {include-group = "lexical"},
+]
+lexical = [
+    "sacrebleu>=2.4,<3",
+    "rouge-score>=0.1.2,<1",
+    "rapidfuzz>=3.6,<4",
+    "nltk>=3.8,<4",
 ]
 
 [project.scripts]

@@ -53,24 +53,24 @@ src = [".", "tests"]
 
 [tool.ruff.lint]
 select = [
-    "E", "F", "W",
-    "I",
-    "N",
-    "UP",
-    "ANN",
-    "S",
-    "B",
-    "A",
-    "RUF",
-    "D",
-    "PYI",
+    "E", "F", "W", # E, W: Pycodestyle errors & warnings; F: Pyflakes (logical errors and bugs, e.g., unused imports, undefined variables, syntax issues)
+    "I", # isort: keeps imports need and ordered alphabetically
+    "N", # pep8-naming: Naming conventions. CamelCase for classes, snake_case for functions and variables
+    "UP", # pyupgrade: Upgrades older Python syntax to newer version standards
+    "ANN", # flake8-annotations: Enforces the presence of type hints for function arguments and return types
+    "S", # flake8-bandit: Automated security linting
+    "B", # flake8-bugbear: Finds likely bugs and design flaws
+    "A", # flake8-builtins: Prevents showing Python buil-ints, e.g., naming a variables `list` or `id`
+    "RUF", # Ruff-specific rules
+    "D", # pydocstyle: Enforces docstring conventions
+    "PYI", # flake8-pyi: Linting rules designed for Python stub files (.pyi)
 ]
 ignore = [
-    "D203",
-    "D213",
-    "ANN101",
-    "ANN102",
-    "ANN401",
+    "D203", # demands a blank line before a class docstring
+    "D213", # demands no blank line in a class docstring
+    "ANN101", # missing type annotations for `self`
+    "ANN102", # missing type annotations for `cls`
+    "ANN401", # allows the type `Any` to be used when a type genuinely cannot be known
 ]
 
 [tool.ruff.lint.per-file-ignores]

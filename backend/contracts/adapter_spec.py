@@ -95,7 +95,15 @@ class ModelCapabilities(BaseModel):
 
 
 class ModelAdapterSpec(BaseModel):
-    """Full identity of a model adapter — what gets persisted with a run."""
+    """Full identity of a model adapter — what gets persisted with a run.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * name: Registry name used to resolve the adapter implementation.
+    * model_id: Provider-specific model identifier (for example ``gpt-4o``).
+    * description: Optional human-readable summary for UIs and metadata tables.
+    * capabilities: Static capability flags advertised by this adapter.
+    * config: Opaque string key-value settings passed to the adapter constructor.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -146,6 +154,12 @@ class JudgeAdapterSpec(ModelAdapterSpec):
     ADR-0014 §1: the judge kind, the rubric the judge scores against,
     the schema the judge must return, and a determinism flag that pins
     ``temperature=0`` plus the run's seed by default.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * judge_kind: Whether the judge scores one candidate, pairwise, or G-Eval style.
+    * rubric: Rubric the judge applies when producing :class:`RubricScore` output.
+    * response_schema_name: Pydantic schema name the judge output must deserialize to.
+    * deterministic: When ``True``, pin decoding to temperature 0 and the run seed.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")

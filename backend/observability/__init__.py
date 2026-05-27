@@ -8,8 +8,7 @@ phase that wants to land in :class:`TelemetryReport` is wrapped in
 Public surface:
 
 - :func:`get_logger` — module-scoped logger factory.
-- :func:`configure_logging` — one-shot logger configuration.
-- :class:`LoggingSettings` — typed configuration model.
+- :func:`attach_file_handler` — append a file handler to the root logger.
 - :func:`run_context` — async context manager that injects
   ``run_id`` / ``stage`` / ``sample_idx`` into log records and timing
   records.
@@ -33,9 +32,7 @@ from backend.observability.context import (
     run_context,
 )
 from backend.observability.logging import (
-    LoggingSettings,
-    RotationSettings,
-    configure_logging,
+    attach_file_handler,
     get_logger,
 )
 from backend.observability.telemetry import start_span
@@ -43,11 +40,9 @@ from backend.observability.timing import TelemetryRecorder, timed
 
 __all__ = [
     "ContextvarsFilter",
-    "LoggingSettings",
-    "RotationSettings",
     "RunContext",
     "TelemetryRecorder",
-    "configure_logging",
+    "attach_file_handler",
     "current_context",
     "get_logger",
     "run_context",

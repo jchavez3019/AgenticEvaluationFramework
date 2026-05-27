@@ -44,6 +44,19 @@ class EvaluationRunRequest(BaseModel):
     The CLI, the API, and library callers all build instances of this
     model. The model itself is engine-agnostic — :class:`EngineConfig`
     decides whether the run executes locally or on a Celery cluster.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * run_id: Unique identifier for this run (generated when omitted).
+    * title: Optional short label shown in run history UIs.
+    * description: Optional longer description of the experiment.
+    * seed: Global RNG seed for reproducible sampling across the run.
+    * model: Spec of the model adapter under test.
+    * judge: Optional judge adapter spec for LLM-as-judge metrics.
+    * dataset: Spec of the dataset adapter supplying samples.
+    * metrics: Ordered list of metric specs to compute for each sample.
+    * sampling: Default generation parameters applied during the run.
+    * engine: Local vs distributed execution and queue sizing.
+    * output: Artifact paths and which files to write after finalize.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -64,9 +77,20 @@ class EvaluationRunRequest(BaseModel):
 class EvaluationRunResult(BaseModel):
     """The fully-populated result returned by :meth:`ExecutionEngine.run`.
 
-    The same model serializes to both ``outputs/cli/<...>/result.json``
-    and the ``runs.summary_json`` column in SQLite (per ADR-0006). The
-    API returns it verbatim through :class:`StorageAdapter.get_run`.
+    Serializes to ``result.json`` on disk and to persistence per ADR-0006.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * run_id: Unique identifier matching :attr:`EvaluationRunRequest.run_id`.
+    * status: Terminal outcome (succeeded, partial, failed, or cancelled).
+    * started_at: UTC timestamp when execution began.
+    * finished_at: UTC timestamp when execution completed.
+    * request: Frozen copy of the request that drove this run.
+    * samples: Dataset rows processed during the run.
+    * generations: Model outputs aligned with ``samples`` by index.
+    * metric_results: Per-sample metric outputs.
+    * aggregate_metric_results: Run-level rollups derived from per-sample metrics.
+    * telemetry: Timing profile and throughput counters for the run.
+    * error: Top-level error message when ``status`` is failed or partial.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")

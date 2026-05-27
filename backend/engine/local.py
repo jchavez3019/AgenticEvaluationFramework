@@ -79,7 +79,7 @@ class LocalEngine:
 
     async def cancel(self, run_id: str) -> None:
         """
-        Mark ``run_id`` as cancelled; in-flight samples wind down.
+        Mark ``run_id`` as canceled; in-flight samples wind down.
 
         :param run_id: Unique run identifier.
         """
@@ -114,10 +114,12 @@ class LocalEngine:
                 progress,
                 StageStarted(run_id=run_id, emitted_at=_now(), stage="setup"),
             )
+            # Initialize the model, relevant metrics, and the dataset to be used.
             with timed("engine.setup"):
                 model = build_model_adapter(request.model)
                 metrics: list[Metric] = [build_metric(spec) for spec in request.metrics]
                 dataset = build_dataset_adapter(request.dataset)
+            # Emit setup completion when a progress sink is attached.
             await self._emit(
                 progress,
                 StageCompleted(

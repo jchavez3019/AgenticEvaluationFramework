@@ -19,7 +19,15 @@ from backend.contracts.primitives import PipelineStage
 
 
 class TimingRecord(BaseModel):
-    """One ``with timed("phase"):`` entry recorded by the engine."""
+    """One ``with timed("phase"):`` entry recorded by the engine.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * phase: Logical phase name within a stage (for example ``adapter.generate``).
+    * duration_ms: Elapsed milliseconds for this timed block.
+    * sample_idx: Sample index when the timing is per-sample; ``None`` for run-level.
+    * stage: Pipeline stage active when the block ran.
+    * exception_class: Exception type when the timed block failed.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -31,7 +39,17 @@ class TimingRecord(BaseModel):
 
 
 class StageSummary(BaseModel):
-    """Per-stage rollup computed at run finalize."""
+    """Per-stage rollup computed at run finalize.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * stage: Pipeline stage this summary aggregates.
+    * total_ms: Total wall time spent in this stage across the run.
+    * samples_processed: Number of samples that entered this stage.
+    * p50_ms: Median per-sample duration within the stage.
+    * p95_ms: 95th percentile per-sample duration within the stage.
+    * p99_ms: 99th percentile per-sample duration within the stage.
+    * error_count: Number of failures recorded during this stage.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -45,7 +63,13 @@ class StageSummary(BaseModel):
 
 
 class QueueDepthSample(BaseModel):
-    """Periodic snapshot of an engine queue's depth."""
+    """Periodic snapshot of an engine queue's depth.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * queue_name: Engine queue identifier (generation, scoring_cpu, scoring_judge).
+    * depth: Number of tasks waiting in the queue at capture time.
+    * captured_at: UTC timestamp when the snapshot was taken.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -55,7 +79,13 @@ class QueueDepthSample(BaseModel):
 
 
 class ThroughputCounters(BaseModel):
-    """Run-level throughput rollup."""
+    """Run-level throughput rollup.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * generation_tokens_per_sec: Average generation throughput when measurable.
+    * scoring_samples_per_sec: Average scoring throughput when measurable.
+    * queue_depths: Time series of queue depth snapshots during the run.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -67,7 +97,17 @@ class ThroughputCounters(BaseModel):
 
 
 class TelemetryReport(BaseModel):
-    """Top-level telemetry block landed inside ``EvaluationRunResult``."""
+    """Top-level telemetry block landed inside ``EvaluationRunResult``.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * run_id: Unique identifier of the evaluation run.
+    * started_at: UTC timestamp when the run began.
+    * finished_at: UTC timestamp when the run completed or was cancelled.
+    * total_duration_ms: End-to-end wall time for the run in milliseconds.
+    * per_record: Raw timing records collected during execution.
+    * per_stage: Rollups derived from ``per_record`` at finalize time.
+    * counters: Throughput and queue-depth counters for the run.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 

@@ -52,7 +52,12 @@ class MockChatModelError(RuntimeError):
 
 
 class MatchExactPrefix(BaseModel):
-    """Match when the last user-message content starts with ``prefix``."""
+    """Match when the last user-message content starts with ``prefix``.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * kind: Discriminator tag for the :data:`MockMatch` union.
+    * prefix: Required leading substring on the last user message.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -61,7 +66,12 @@ class MatchExactPrefix(BaseModel):
 
 
 class MatchRegex(BaseModel):
-    """Match when the last user-message content matches ``pattern``."""
+    """Match when the last user-message content matches ``pattern``.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * kind: Discriminator tag for the :data:`MockMatch` union.
+    * pattern: Regular expression matched against the last user message.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -70,7 +80,11 @@ class MatchRegex(BaseModel):
 
 
 class MatchAny(BaseModel):
-    """Match every request (typically used as a final fall-through)."""
+    """Match every request (typically used as a final fall-through).
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * kind: Discriminator tag for the :data:`MockMatch` union.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -86,7 +100,15 @@ MockMatch = MatchExactPrefix | MatchRegex | MatchAny
 
 
 class MockChatScript(BaseModel):
-    """One mapping rule from a request shape to a canned response."""
+    """One mapping rule from a request shape to a canned response.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * match: Rule selecting which requests this script handles.
+    * response: Canned text returned when the rule matches.
+    * latency_ms: Artificial latency applied before returning the response.
+    * fail_with: Exception class name to raise instead of returning (when set).
+    * usage: Token and cost accounting attached to the canned response.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -180,7 +202,15 @@ class MockChatModel:
 
 
 class MockJudgeScript(BaseModel):
-    """Map a (input, candidate) tuple to a structured rubric score."""
+    """Map a (input, candidate) tuple to a structured rubric score.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * match: Rule selecting which candidate texts this script handles.
+    * score: Canned :class:`RubricScore` returned when the rule matches.
+    * latency_ms: Artificial latency applied before returning the score.
+    * fail_with: Exception class name to raise instead of returning (when set).
+    * usage: Token and cost accounting attached to the judge call.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 

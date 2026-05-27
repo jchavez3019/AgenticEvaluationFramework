@@ -32,7 +32,13 @@ ChatRole = Literal["system", "user", "assistant", "tool"]
 
 
 class ChatMessage(BaseModel):
-    """One message in a chat-shaped generation request."""
+    """One message in a chat-shaped generation request.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * role: Speaker role in the chat transcript (system, user, assistant, or tool).
+    * content: Text payload for this message.
+    * name: Optional speaker label when the role is ``tool``.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -45,10 +51,17 @@ class GenerationConfig(BaseModel):
     """Runtime-configurable generation parameters per ADR-0003 §4.
 
     Every field is optional; ``None`` means "use the adapter's default".
-    Adapters MUST honor every field appearing in their
-    :attr:`ModelCapabilities.supported_sampling_parameters` set and MUST
-    raise :class:`UnsupportedSamplingParameterError` when an explicitly
-    set field is not in that set.
+    Adapters MUST honor every field in
+    :attr:`ModelCapabilities.supported_sampling_parameters` and MUST raise
+    :class:`UnsupportedSamplingParameterError` when an unsupported field is set.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * temperature: Sampling temperature; higher values increase randomness.
+    * top_k: Limit sampling to the top *k* logits by probability mass.
+    * top_p: Nucleus sampling cutoff on cumulative token probability.
+    * repetition_penalty: Multiplier penalizing repeated tokens (values above 1.0).
+    * max_output_tokens: Hard cap on generated tokens for this call.
+    * seed: RNG seed for reproducible decoding when the adapter supports it.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -62,7 +75,14 @@ class GenerationConfig(BaseModel):
 
 
 class Usage(BaseModel):
-    """Token / cost accounting reported by an adapter for one call."""
+    """Token / cost accounting reported by an adapter for one call.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * prompt_tokens: Tokens consumed by the prompt side of the call.
+    * completion_tokens: Tokens produced in the model output.
+    * total_tokens: Combined prompt and completion token count when reported.
+    * cost_usd: Estimated dollar cost for the call when the adapter can compute it.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -73,7 +93,12 @@ class Usage(BaseModel):
 
 
 class GenerationRequest(BaseModel):
-    """Chat-shaped generation request handed to a :class:`ModelAdapter`."""
+    """Chat-shaped generation request handed to a :class:`ModelAdapter`.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * messages: Ordered chat history; must contain at least one message.
+    * sampling: Generation parameters applied to this request.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -82,7 +107,15 @@ class GenerationRequest(BaseModel):
 
 
 class GenerationResponse(BaseModel):
-    """Chat-shaped generation response returned by a :class:`ModelAdapter`."""
+    """Chat-shaped generation response returned by a :class:`ModelAdapter`.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * text: Decoded model output text.
+    * finish_reason: Provider-specific stop reason (for example ``stop`` or ``length``).
+    * usage: Token and cost accounting for this call.
+    * latency_ms: Wall-clock latency measured by the adapter for this call.
+    * trace: Optional diagnostic strings (tool calls, routing notes) for debugging.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -99,7 +132,15 @@ class GenerationResponse(BaseModel):
 
 
 class RetrievedChunk(BaseModel):
-    """A single retrieved chunk supplied alongside a sample (RAG)."""
+    """A single retrieved chunk supplied alongside a sample (RAG).
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * text: Chunk body passed to the model or metric.
+    * score: Retriever relevance score when the dataset provides one.
+    * chunk_id: Stable identifier for this chunk within the corpus.
+    * source: Provenance label (file, URL, document id) for the chunk.
+    * relevance_label: Gold relevance flag for RAG metrics when available.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -111,7 +152,15 @@ class RetrievedChunk(BaseModel):
 
 
 class SampleMetadata(BaseModel):
-    """Typed sample metadata — the explicit alternative to ``Dict[str, Any]``."""
+    """Typed sample metadata — the explicit alternative to ``Dict[str, Any]``.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * dataset_split: Split name (train, validation, test) when the dataset tags it.
+    * category: Coarse task or topic label for filtering and reporting.
+    * difficulty: Ordinal difficulty bucket for stratified analysis.
+    * language: BCP-47 or dataset-specific language code for the sample.
+    * tags: Free-form labels attached by the dataset adapter.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -123,7 +172,17 @@ class SampleMetadata(BaseModel):
 
 
 class EvaluationSample(BaseModel):
-    """One row produced by a :class:`DatasetAdapter`."""
+    """One row produced by a :class:`DatasetAdapter`.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * idx: Zero-based row index within the dataset for this run.
+    * input: Prompt or question text fed to the model under test.
+    * reference: Single gold answer when the task has one reference string.
+    * references: Multiple acceptable gold answers when the task allows variants.
+    * context: Retrieved passages supplied to the model at generation time.
+    * gold_context: Gold passages used by RAG metrics (may differ from ``context``).
+    * metadata: Optional structured tags from the dataset adapter.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -159,7 +218,12 @@ EngineQueueName = Literal["generation", "scoring_cpu", "scoring_judge"]
 
 
 class EngineQueueConfig(BaseModel):
-    """Sizing knobs for one of the engine's typed queues."""
+    """Sizing knobs for one of the engine's typed queues.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * pool_size: Number of concurrent workers draining this queue.
+    * max_queue_depth: Maximum in-flight tasks before producers back-pressure.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -183,10 +247,17 @@ def _default_engine_queues() -> dict[EngineQueueName, EngineQueueConfig]:
 class EngineConfig(BaseModel):
     """Single engine config consumed by :class:`ExecutionEngine.spec`.
 
-    Per the ADR-0005 §1 clarification, the engine has exactly one
-    Pydantic model — there is no separate ``EngineSpec``. The CLI builds
-    this model via ``hydra-zen`` (per ADR-0007); the API constructs it
-    directly when a frontend launches a run.
+    Per ADR-0005 §1 there is no separate ``EngineSpec``. The CLI builds this
+    model via ``hydra-zen``; the API constructs it when a run is launched.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * kind: Selector between local in-process and distributed Celery execution.
+    * micro_batch_size: Number of samples batched before a scoring flush.
+    * micro_batch_timeout_ms: Max wait (ms) to fill a micro-batch before flushing.
+    * broker_url: Redis (or compatible) URL for the distributed engine.
+    * acks_late: When ``True``, Celery acknowledges tasks only after completion.
+    * queues: Per-queue worker pool and depth limits (generation, scoring_cpu, scoring_judge).
+    * cancel_grace_seconds: Seconds to wait for in-flight work after cancellation.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -203,7 +274,15 @@ class EngineConfig(BaseModel):
 
 
 class OutputConfig(BaseModel):
-    """Where and what an evaluation run writes to disk."""
+    """Where and what an evaluation run writes to disk.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * base_dir: Root directory under which run artifacts are created.
+    * write_result_json: When ``True``, emit the full :class:`EvaluationRunResult` JSON.
+    * write_metrics_csv: When ``True``, emit per-metric CSV summaries.
+    * write_plots: When ``True``, emit visualization artifacts (deferred in skeleton).
+    * write_run_log: When ``True``, emit a structured run log alongside results.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -227,7 +306,14 @@ RubricAggregation = Literal["mean", "min", "weighted_mean", "none"]
 
 
 class RubricCriterion(BaseModel):
-    """One named rating dimension inside a :class:`Rubric`."""
+    """One named rating dimension inside a :class:`Rubric`.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * name: Short identifier for this criterion (stable across rubric versions).
+    * description: Prompt text explaining what the judge should rate.
+    * scale: Closed rating scale for this criterion.
+    * higher_is_better: When ``True``, larger scores mean better quality.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -266,7 +352,13 @@ class Rubric(BaseModel):
 
 
 class CriterionScore(BaseModel):
-    """The judge's score on one rubric criterion."""
+    """The judge's score on one rubric criterion.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * criterion: Name of the criterion being scored (matches :class:`RubricCriterion`).
+    * score: Numeric rating on the criterion's scale.
+    * rationale: Judge explanation supporting the score (required by ADR-0014).
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -281,6 +373,13 @@ class RubricScore(BaseModel):
     ``overall`` is computed framework-side from ``criteria_scores`` per
     :attr:`Rubric.aggregation` (per ADR-0014 §2). The judge does NOT
     compute the aggregate.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * rubric_name: Name of the rubric that produced this score.
+    * rubric_version: Version string of the rubric definition.
+    * criteria_scores: Per-criterion scores returned by the judge.
+    * overall: Framework-computed aggregate when aggregation is configured.
+    * notes: Optional free-form judge commentary.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -293,7 +392,15 @@ class RubricScore(BaseModel):
 
 
 class PairwisePreference(BaseModel):
-    """Output of a pairwise judge comparing two candidates."""
+    """Output of a pairwise judge comparing two candidates.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * winner: Which candidate won, or ``tie`` when indistinguishable.
+    * confidence: Judge confidence in the preference on ``[0, 1]``.
+    * score_a: Rubric scores for candidate A.
+    * score_b: Rubric scores for candidate B.
+    * swap_agreed: When ``True``, position-swap mitigation did not flip the winner.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -305,7 +412,17 @@ class PairwisePreference(BaseModel):
 
 
 class BiasMitigation(BaseModel):
-    """Default bias-mitigation knobs for judge metrics (ADR-0014 §4)."""
+    """Default bias-mitigation knobs for judge metrics (ADR-0014 §4).
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * position_swap: Run pairwise comparisons with candidates swapped and compare outcomes.
+    * length_anchor: Normalize scores when candidate lengths differ materially.
+    * style_anchor: Anchor scoring style across candidates in one batch.
+    * self_preference_warning: Flag when the judge model may favor its own family.
+    * deterministic: Pin decoding to temperature 0 and the run seed when supported.
+    * require_rationale: Reject judge outputs that omit per-criterion rationales.
+    * parser_retries: How many times to retry parsing malformed judge JSON.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -319,7 +436,19 @@ class BiasMitigation(BaseModel):
 
 
 class JudgmentRequest(BaseModel):
-    """Input passed to :meth:`JudgeAdapter.judge`."""
+    """Input passed to :meth:`JudgeAdapter.judge`.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * sample_idx: Index of the sample under judgment within the run.
+    * sample_input: Original dataset prompt for context.
+    * candidate: Primary model output being scored.
+    * candidate_b: Second candidate for pairwise judging; ``None`` for single-candidate.
+    * reference: Optional gold answer shown to the judge.
+    * rubric: Rubric definition the judge must apply.
+    * rendered_prompt: Fully rendered judge prompt sent to the adapter.
+    * bias_mitigation: Bias-mitigation knobs applied to this judgment.
+    * sampling: Decoding parameters for the judge model call.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -335,7 +464,15 @@ class JudgmentRequest(BaseModel):
 
 
 class JudgmentResponse(BaseModel):
-    """Output of :meth:`JudgeAdapter.judge`."""
+    """Output of :meth:`JudgeAdapter.judge`.
+
+    * model_config: Pydantic config — frozen instance, forbid unknown fields.
+    * score: Structured rubric scores for the judgment.
+    * pairwise: Pairwise preference details when ``candidate_b`` was provided.
+    * usage: Token and cost accounting for the judge call.
+    * latency_ms: Wall-clock latency of the judge call.
+    * deterministic_best_effort: Whether deterministic decoding was honored.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
