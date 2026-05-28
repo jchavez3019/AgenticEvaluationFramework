@@ -6,7 +6,6 @@ from collections.abc import Generator
 from pathlib import Path
 
 import pytest
-from cli.config import register_configs
 from cli.entrypoint import request_from_cfg
 from hydra import compose, initialize_config_dir
 from hydra.core.global_hydra import GlobalHydra
@@ -29,11 +28,10 @@ def clear_hydra() -> Generator[None, None, None]:
 @pytest.fixture
 def hydra_ctx() -> Generator[None, None, None]:
     """
-    Register configs and initialize Hydra against the repo ``configs/`` tree.
+    Initialize Hydra against the repo ``configs/`` tree.
 
     :yields: Nothing; provides an initialized Hydra context for the test body.
     """
-    register_configs()
     with initialize_config_dir(
         config_dir=_CONFIG_DIR,
         version_base="1.3",

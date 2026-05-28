@@ -38,9 +38,7 @@ async def test_alembic_upgrade_head_against_temp_sqlite(tmp_path: Path) -> None:
         text=True,
         check=False,
     )
-    assert (
-        result.returncode == 0
-    ), f"alembic upgrade failed:\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+    assert result.returncode == 0, f"alembic upgrade failed:\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
     assert db_path.exists()
 
     # Make sure the migrated schema is usable through the storage adapter.

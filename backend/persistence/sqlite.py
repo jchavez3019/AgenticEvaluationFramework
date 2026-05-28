@@ -220,11 +220,7 @@ class SQLiteStorage:
                 metric_version=result.metric_version,
                 status=result.status.value,
                 value=result.value,
-                sub_values_json=(
-                    json.dumps([s.model_dump() for s in result.sub_values])
-                    if result.sub_values
-                    else None
-                ),
+                sub_values_json=(json.dumps([s.model_dump() for s in result.sub_values]) if result.sub_values else None),
                 compute_latency_ms=result.compute_latency_ms,
                 exception_class=result.exception_class,
                 exception_message=result.exception_message,
@@ -481,11 +477,7 @@ class SQLiteStorage:
 
         :return: A :class:`list[MetricResultORM]` instance.
         """
-        stmt = (
-            select(MetricResultORM)
-            .where(MetricResultORM.run_id == run_id)
-            .order_by(MetricResultORM.id)
-        )
+        stmt = select(MetricResultORM).where(MetricResultORM.run_id == run_id).order_by(MetricResultORM.id)
         return list((await session.execute(stmt)).scalars().all())
 
     def _rehydrate_request(self, run: Run) -> EvaluationRunRequest:
@@ -557,9 +549,7 @@ class SQLiteStorage:
         per_sample: list[MetricResult] = []
         aggregate: list[MetricResult] = []
         for row in rows:
-            sub_values_payload: list[Any] = (
-                cast("list[Any]", json.loads(row.sub_values_json)) if row.sub_values_json else []
-            )
+            sub_values_payload: list[Any] = cast("list[Any]", json.loads(row.sub_values_json)) if row.sub_values_json else []
             metric_result = MetricResult.model_validate(
                 {
                     "metric_name": row.metric_name,
@@ -624,10 +614,7 @@ class SQLiteStorage:
             dataset_spec=DatasetAdapterSpec.model_validate(
                 json.loads(run.dataset_spec_json),
             ),
-            metric_specs=[
-                MetricSpec.model_validate(m)
-                for m in cast("list[Any]", json.loads(run.metric_specs_json))
-            ],
+            metric_specs=[MetricSpec.model_validate(m) for m in cast("list[Any]", json.loads(run.metric_specs_json))],
             seed=run.seed,
         )
 

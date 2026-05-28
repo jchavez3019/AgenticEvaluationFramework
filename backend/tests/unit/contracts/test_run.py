@@ -215,6 +215,5 @@ def test_evaluation_run_result_matches_golden_snapshot() -> None:
 
     expected = json.loads(golden_path.read_text())
     assert payload == expected, (
-        "EvaluationRunResult shape diverged from the golden snapshot. "
-        "Update fixtures/golden/run_result.json deliberately if intended."
+        "EvaluationRunResult shape diverged from the golden snapshot. " "Update fixtures/golden/run_result.json deliberately if intended."
     )

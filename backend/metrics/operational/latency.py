@@ -61,9 +61,7 @@ class LatencyMetric(BaseMetric):
 
         :return: :class:`MetricResult` instance.
         """
-        scalars = [
-            r.value for r in per_sample if r.status == MetricStatus.OK and r.value is not None
-        ]
+        scalars = [r.value for r in per_sample if r.status == MetricStatus.OK and r.value is not None]
         if not scalars:
             return MetricResult(
                 metric_name=self.spec.name,

@@ -54,8 +54,7 @@ class UnsupportedSamplingParameterError(ValueError):
         self.unsupported = unsupported
         self.supported = supported
         super().__init__(
-            f"Adapter {adapter_name!r} does not support sampling "
-            f"parameters: {sorted(unsupported)} (supported: {sorted(supported)})",
+            f"Adapter {adapter_name!r} does not support sampling " f"parameters: {sorted(unsupported)} (supported: {sorted(supported)})",
         )
 
 

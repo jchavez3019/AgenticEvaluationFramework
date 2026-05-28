@@ -59,8 +59,7 @@ def plot_main(argv: list[str] | None = None) -> int:
     _stdout(f"# {result.run_id}  status={result.status}")
     for aggregate in result.aggregate_metric_results:
         _stdout(
-            f"  {aggregate.metric_name}: value={aggregate.value} "
-            f"sub_values={[f'{s.name}={s.value}' for s in aggregate.sub_values]}",
+            f"  {aggregate.metric_name}: value={aggregate.value} " f"sub_values={[f'{s.name}={s.value}' for s in aggregate.sub_values]}",
         )
     return 0
 

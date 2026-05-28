@@ -89,9 +89,7 @@ def test_no_any_in_public_contract_schemas() -> None:
         schema: dict[str, Any] = model.model_json_schema()
         _walk_schema(schema, model.__name__, violations)
 
-    assert not violations, "Found `Any` / unconstrained fields on public contracts:\n" + "\n".join(
-        violations
-    )
+    assert not violations, "Found `Any` / unconstrained fields on public contracts:\n" + "\n".join(violations)
 
 
 def test_every_contract_model_forbids_extra_fields() -> None:
@@ -108,6 +106,4 @@ def test_every_contract_model_forbids_extra_fields() -> None:
     for model in _iter_contract_models():
         if model.model_config.get("extra") != "forbid":
             violations.append(model.__name__)
-    assert not violations, (
-        "Models missing extra='forbid' (set ConfigDict in the model):\n" + "\n".join(violations)
-    )
+    assert not violations, "Models missing extra='forbid' (set ConfigDict in the model):\n" + "\n".join(violations)

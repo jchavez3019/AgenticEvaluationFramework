@@ -111,9 +111,7 @@ class RunFinalized(_BaseProgressEvent):
     status: Literal["succeeded", "partial", "failed", "cancelled"]
 
 
-ProgressEvent = (
-    StageStarted | StageCompleted | SampleStarted | SampleCompleted | SampleFailed | RunFinalized
-)
+ProgressEvent = StageStarted | StageCompleted | SampleStarted | SampleCompleted | SampleFailed | RunFinalized
 
 
 @runtime_checkable

@@ -178,9 +178,7 @@ class LocalEngine:
 
             aggregate_results: list[MetricResult] = []
             for metric in metrics:
-                metric_per_sample = [
-                    r for r in per_sample_results if r.metric_name == metric.spec.name
-                ]
+                metric_per_sample = [r for r in per_sample_results if r.metric_name == metric.spec.name]
                 aggregate_results.append(await metric.aggregate(metric_per_sample))
 
             primary_metric = aggregate_results[0] if aggregate_results else None

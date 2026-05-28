@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import sys
+import uuid
 from pathlib import Path
 from typing import Any, cast
 
@@ -28,14 +29,11 @@ from backend.persistence import SQLiteStorage
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig, OmegaConf
 
-from cli.config import build_run_id, register_configs
-
 logger = get_logger(__name__)
 
+# Path to configs/ exists two levels up from the script.
+# Ensures they are found, even if the script is run from a different directory.
 _CONFIG_DIR = str(Path(__file__).resolve().parent.parent / "configs")
-
-# Populate hydra-zen's named store before Hydra composes the config tree.
-register_configs()
 
 
 def request_from_cfg(cfg: DictConfig) -> EvaluationRunRequest:
@@ -50,10 +48,12 @@ def request_from_cfg(cfg: DictConfig) -> EvaluationRunRequest:
     if not isinstance(resolved, dict):
         msg = f"config root must be a mapping, got {type(resolved).__name__}"
         raise TypeError(msg)
+    # Static type checkers cannot infer the DictConfig container shape.
     payload = cast("dict[str, Any]", resolved)
     run_id = payload.get("run_id")
     if run_id in (None, "", "PLACEHOLDER"):
-        payload["run_id"] = build_run_id()
+        # if a run_id is not provided, generate a random UUID4 string
+        payload["run_id"] = str(uuid.uuid4())
     return EvaluationRunRequest.model_validate(payload)
 
 
@@ -62,7 +62,10 @@ async def _execute_one(
     output_dir: Path,
 ) -> EvaluationRunResult:
     """
-    Execute a single :class:`EvaluationRunRequest` asynchronously.
+    Execute a single :class:`EvaluationRunRequest`.
+
+    Since `storage.create_all()`, `engine.close()`, and `storage.close()` are all asynchronous methods,
+    we must mark this method as asynchronous as well and use `await` to wait for the operations to complete.
 
     :param request: The evaluation run request.
     :param output_dir: Directory where ``result.json`` and ``request.json`` are written.
@@ -75,12 +78,15 @@ async def _execute_one(
         await storage.create_all()
         engine = LocalEngine()
         try:
+            # the engine performs the evaluation and saves the results to
+            # the storage adapter in addition to returning the result
             result = await engine.run(request, storage)
         finally:
             await engine.close()
     finally:
         await storage.close()
 
+    # dump Pydantic requests and results to their corresponding json files
     (output_dir / "result.json").write_text(
         result.model_dump_json(indent=2),
     )
@@ -110,35 +116,6 @@ def run(
     return asyncio.run(_execute_one(request, output_dir))
 
 
-def _run_from_cfg(cfg: DictConfig) -> int:
-    """
-    Run one Hydra-composed evaluation; return a process exit code.
-
-    :param cfg: Hydra-composed configuration tree.
-
-    :return: Process exit code (``0`` on success).
-    """
-    output_dir = Path(HydraConfig.get().runtime.output_dir)
-    error_handler = attach_file_handler(output_dir / "error.log")
-    try:
-        request = request_from_cfg(cfg)
-        result = asyncio.run(_execute_one(request, output_dir))
-        logger.info(
-            "run finalized",
-            extra={
-                "run_id": result.run_id,
-                "status": result.status,
-                "output_dir": str(output_dir),
-            },
-        )
-        return 0
-    except Exception:
-        logger.exception("CRITICAL: Backend crashed with an unhandled exception")
-        return 1
-    finally:
-        logging.getLogger().removeHandler(error_handler)
-
-
 @hydra.main(
     config_path=_CONFIG_DIR,
     config_name="eval_run",
@@ -152,7 +129,29 @@ def hydra_entry(cfg: DictConfig) -> int:
 
     :return: Process exit code (``0`` on success).
     """
-    return _run_from_cfg(cfg)
+    output_dir = Path(HydraConfig.get().runtime.output_dir)
+    error_handler = attach_file_handler(output_dir / "error.log")
+    try:
+        # build a request from the Hydra configuration
+        request = request_from_cfg(cfg)
+        # execute the request
+        result = asyncio.run(_execute_one(request, output_dir))
+        # log the result
+        logger.info(
+            "run finalized",
+            extra={
+                "run_id": result.run_id,
+                "status": result.status,
+                "output_dir": str(output_dir),
+            },
+        )
+        return 0  # success
+    except Exception:
+        logger.exception("CRITICAL: Backend crashed with an unhandled exception")
+        return 1  # failure
+    finally:
+        # remove the error handler
+        logging.getLogger().removeHandler(error_handler)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -164,6 +163,7 @@ def main(argv: list[str] | None = None) -> int:
     :return: Process exit code (``0`` on success).
     """
     if argv is not None:
+        # save the program list arguments
         sys.argv = list(argv)
     try:
         hydra_entry()

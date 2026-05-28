@@ -191,8 +191,7 @@ class MockChatModel:
             if _match(script.match, last_user_content):
                 return script
         raise MockChatModelError(
-            f"MockChatModel({self.spec.name!r}): no script matched "
-            f"last-user content {last_user_content!r}",
+            f"MockChatModel({self.spec.name!r}): no script matched " f"last-user content {last_user_content!r}",
         )
 
 

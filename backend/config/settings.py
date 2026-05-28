@@ -44,9 +44,7 @@ class Settings(BaseSettings):
 
     database_url: str = Field(
         default="sqlite+aiosqlite:///./.aef/aef.sqlite3",
-        description=(
-            "SQLAlchemy async URL — SQLite by default; " "Postgres swap is documented in ADR-0006."
-        ),
+        description=("SQLAlchemy async URL — SQLite by default; " "Postgres swap is documented in ADR-0006."),
     )
     database_auto_upgrade: bool = Field(
         default=True,

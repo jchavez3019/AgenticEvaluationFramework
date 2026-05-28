@@ -98,7 +98,7 @@ package = true
 # Ruff — single source of truth for linting + formatting (ADR-0010).
 # ---------------------------------------------------------------------------
 [tool.ruff]
-line-length = 100
+line-length = 150
 target-version = "py313"
 src = [".", "tests"]
 extend-exclude = ["persistence/migrations/versions"]
